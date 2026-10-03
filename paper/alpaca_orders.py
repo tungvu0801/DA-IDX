@@ -3,8 +3,10 @@ paper/alpaca_orders.py — Stage 4.6B service: manual Alpaca PAPER orders (DESIG
 
   settings    settings_view · link_account · relink_account · enable · disable     (no broker writes; ≤ 2 GET each)
   orders      preview (≤ 5 paper GET + ≤ 1 market-data request, 0 POST) → explicit confirm (≤ 4 GET + exactly 1 POST +
-              ≤ 1 exact lookup) · retry (explicit; same client_order_id; exact lookup first) · abandon (explicit; exact
-              lookup first) · check_status (exact lookups only) · list_intents (0 requests)
+              ≤ 1 exact lookup) · retry (explicit; same client_order_id; exact lookup first) · abandon (explicit; 1 account
+              GET, then 1 exact lookup) · check_status (1 account GET, then exact lookups only) · list_intents (0 requests)
+Every action that touches the broker first verifies the account the credentials point to is the LINKED account: a
+different paper account → ACCOUNT_NOT_LINKED before any order lookup, POST or state change.
 
 The ONLY path to the broker write (paper/alpaca_order_writer.py) is `_post_once`, called only by `confirm` and `retry`,
 after the intent was committed as SUBMISSION_PENDING (write-ahead) and every gate (V1–V17) passed on fresh reads.
@@ -500,6 +502,14 @@ def _settle(st: S.OrderStore, intent_id: int, res: dict) -> tuple:
     return st.intent(intent_id), outcome
 
 
+def _require_bound_account(s: dict) -> None:
+    """ONE fresh GET /v2/account: the configured credentials must point to the linked account. Raised BEFORE any order
+    lookup and before any state change (stale rules included), so a switched .env can never act on the wrong account."""
+    acct = _read(_reader(1).account)
+    if acct["fingerprint"] != s["bound_account_fp"]:
+        raise OrderError("ACCOUNT_NOT_LINKED")
+
+
 def _gate_failure(gates: list) -> Optional[dict]:
     failing = RU.blocking(gates)
     return failing[0] if failing else None
@@ -615,15 +625,17 @@ def retry(intent_id: int, preview_hash: str) -> dict:
 def abandon(intent_id: int, preview_hash: str) -> dict:
     with _LOCK:
         st = _store()
-        _apply_stale(st)
         row = st.intent(intent_id)
         if row is None:
             raise OrderError("NOT_FOUND", "No such paper order.", 404)
         if row["preview_hash"] != preview_hash:
             raise OrderError("PREVIEW_MISMATCH", "This is not the exact stored order.")
+        _require_configured()
+        _require_bound_account(_linked(st))                                   # 1 account GET, before anything changes
+        _apply_stale(st)
+        row = st.intent(intent_id)
         if row["state"] not in (RU.SUBMIT_NOT_SENT, RU.RR):
             raise OrderError("NOT_ABANDONABLE", "Only an order that was not sent or needs reconciliation can be abandoned.")
-        _require_configured()
         found, obj = _lookup(row)                                             # never abandon an order that exists
         now = _now()
         if found == "error":
@@ -659,6 +671,7 @@ def check_status() -> dict:
         if not st.exists():
             return {"checked": 0, "results": [], "intents": []}
         _require_configured()
+        _require_bound_account(_linked(st))                                   # 1 account GET for the whole action
         _apply_stale(st)
         rows = st.in_states(RU.LIVE | {RU.RR, RU.SUBMIT_NOT_SENT})[:RU.STATUS_MAX]
         results = []

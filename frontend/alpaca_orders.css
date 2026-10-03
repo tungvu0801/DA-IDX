@@ -9,7 +9,7 @@
 .apo-order { font-size: 16px; margin: 4px 0 6px; }
 .apo-facts { display: grid; gap: 3px; margin: 4px 0; }
 .apo-facts code, .apo-preview code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; overflow-wrap: anywhere; }
-.apo-rules { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 2px; }
+.apo-rules { list-style: none; margin: 6px 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; }
 .apo-err { color: var(--cc-alert); }
 .apo-why { color: var(--cc-warn); }
 .apo .apo-confirm:disabled, .apo [data-apo]:disabled { opacity: 0.45; cursor: not-allowed; }

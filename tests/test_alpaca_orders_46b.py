@@ -655,6 +655,61 @@ def test_G_disable_supersedes_previews_and_blocks_retry_but_not_status(broker):
     assert O.check_status()["checked"] >= 1 and broker.posts == []
 
 
+def order_tables(path):
+    return [db_rows(path, t) for t in TABLES]
+
+
+def test_G_status_with_another_paper_account_is_refused_before_any_lookup_or_state_change(broker, clock):
+    ready(broker)
+    i = preview()
+    broker.post_modes = ["timeout_before"]
+    confirm(i)                                                                              # RECONCILIATION_REQUIRED
+    k = preview("KO", "BUY", 1)
+    confirm(k)                                                                              # SUBMITTED (live)
+    st = S.OrderStore()
+    m = preview("MU", "BUY", 1)
+    with st.write() as c:                                                                   # an interrupted submission ...
+        st.transition(c, m["intent_id"], {"PREVIEWED"}, "CONFIRMING", clock[0], confirmed_at=clock[0].isoformat())
+        st.transition(c, m["intent_id"], {"CONFIRMING"}, "SUBMISSION_PENDING", clock[0], submit_attempts=1,
+                      last_submit_at=clock[0].isoformat())
+    clock[0] += timedelta(seconds=46)                                                       # ... now stale
+    broker.account.update(id=OTHER_ACCOUNT_ID, account_number="PA3OTHER1234")              # .env switched to another account
+    path = Path(broker.lab.path)
+    before = order_tables(path)
+    broker.requests.clear()
+    assert err(O.check_status).code == "ACCOUNT_NOT_LINKED"
+    assert [p for _, p, _ in broker.requests] == ["/v2/account"]                           # 1 account GET, 0 order lookups
+    assert order_tables(path) == before and st.intent(m["intent_id"])["state"] == "SUBMISSION_PENDING"   # 0 state changes
+    broker.account.update(id=ACCOUNT_ID, account_number="PA3FAKE7890")                    # the linked account again
+    clock[0] += timedelta(seconds=4)
+    broker.requests.clear()
+    out = O.check_status()
+    paths = [p for _, p, _ in broker.requests]
+    assert paths[0] == "/v2/account" and paths.count("/v2/account") == 1                   # ONE account GET for the action
+    assert all(p.startswith("/v2/orders") for p in paths[1:]) and out["checked"] == len(paths) - 1 == 3
+    assert st.intent(m["intent_id"])["state"] == "RECONCILIATION_REQUIRED"                 # existing behaviour unchanged
+    assert st.intent(k["intent_id"])["state"] == "SUBMITTED" and broker.posts and len(broker.posts) == 2
+
+
+def test_G_abandon_with_another_paper_account_is_refused_before_the_lookup(broker):
+    ready(broker)
+    i = preview()
+    broker.post_modes = ["connect_timeout"]
+    confirm(i)                                                                              # SUBMIT_NOT_SENT
+    broker.account.update(id=OTHER_ACCOUNT_ID, account_number="PA3OTHER1234")
+    path = Path(broker.lab.path)
+    before = order_tables(path)
+    broker.requests.clear()
+    assert err(O.abandon, i["intent_id"], i["preview_hash"]).code == "ACCOUNT_NOT_LINKED"
+    assert [p for _, p, _ in broker.requests] == ["/v2/account"]                           # 1 account GET, 0 order lookups
+    assert order_tables(path) == before and S.OrderStore().intent(i["intent_id"])["state"] == "SUBMIT_NOT_SENT"
+    broker.account.update(id=ACCOUNT_ID, account_number="PA3FAKE7890")
+    broker.requests.clear()
+    assert O.abandon(i["intent_id"], i["preview_hash"])["intent"]["state"] == "ABANDONED"  # existing behaviour unchanged
+    assert [p for _, p, _ in broker.requests] == ["/v2/account", "/v2/orders:by_client_order_id"]
+    assert broker.posts == []
+
+
 # ==================================================================================================================================
 # H — reference price source and credential separation
 # ==================================================================================================================================
@@ -980,6 +1035,27 @@ def test_M_migration_additive_idempotent_and_triggers(broker):
     with sqlite3.connect(str(path)) as c:
         with pytest.raises(sqlite3.DatabaseError, match="final"):
             c.execute("UPDATE alpaca_paper_order_intents SET broker_status = 'x'")           # FILLED is terminal
+
+
+def test_M_migration_file_and_exact_schema_are_pinned(tmp_path):
+    """The ONE approved Alpaca migration file (the frozen 4.6A test exempts exactly this name) and its exact schema."""
+    from database.alpaca_order_migrations import run_alpaca_order_migrations
+    assert sorted(p.name for p in (ROOT / "database").glob("*alpaca*")) == ["alpaca_order_migrations.py"]
+    assert not list((ROOT / "database").glob("*broker*"))
+    db = tmp_path / "pin.db"
+    with sqlite3.connect(str(db)) as c:
+        run_alpaca_order_migrations(c)
+        objs = sorted(c.execute("SELECT type, name FROM sqlite_master"))
+    assert [n for t, n in objs if t == "table"] == sorted(TABLES)                            # exactly three tables, nothing else
+    assert objs == sorted([("table", t) for t in TABLES] + [
+        ("index", "idx_apo_events_intent"), ("index", "idx_apo_intents_state"), ("index", "idx_apo_intents_symbol"),
+        ("index", "sqlite_autoindex_alpaca_paper_order_intents_1"), ("index", "sqlite_autoindex_alpaca_paper_order_intents_2"),
+        ("index", "sqlite_autoindex_alpaca_paper_order_intents_3"),
+        ("trigger", "apo_events_no_delete"), ("trigger", "apo_events_no_update"), ("trigger", "apo_intents_immutable"),
+        ("trigger", "apo_intents_no_delete"), ("trigger", "apo_intents_order_id_once"), ("trigger", "apo_intents_terminal_final"),
+        ("trigger", "apo_settings_no_delete")])
+    t46a = (ROOT / "tests" / "test_alpaca_paper_46.py").read_text(encoding="utf-8")
+    assert t46a.count('if p.name != "alpaca_order_migrations.py"]') == 1                     # the second approved 4.6A line
 
 
 def test_M_stage_4_5_tables_and_views_untouched(broker):

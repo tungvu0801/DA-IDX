@@ -10,8 +10,8 @@ GET  /api/alpaca-paper-orders                          the orders (0 requests)
 POST /api/alpaca-paper-orders/preview                  {symbol, side, quantity}                     ≤ 5 GET + ≤ 1 market-data, 0 POST
 POST /api/alpaca-paper-orders/confirm                  {preview_id, preview_hash, confirm: true}    ≤ 4 GET + 1 POST + ≤ 1 lookup
 POST /api/alpaca-paper-orders/{intent_id}/retry        {preview_hash, confirm: true}                1 lookup + ≤ 4 GET + ≤ 1 POST + ≤ 1 lookup
-POST /api/alpaca-paper-orders/{intent_id}/abandon      {preview_hash, confirm: true}                1 lookup
-POST /api/alpaca-paper-orders/status                   {}                                           ≤ 20 GET
+POST /api/alpaca-paper-orders/{intent_id}/abandon      {preview_hash, confirm: true}                1 account GET + 1 lookup
+POST /api/alpaca-paper-orders/status                   {}                                           1 account GET + ≤ 20 lookups
 
 Every POST: `Content-Type: application/json`, header `X-Stock-Agent-Intent: paper-order`, Host = 127.0.0.1:PORT or
 localhost:PORT of this server, Origin (when present) the same, loopback client only, no query parameters, strict bodies
