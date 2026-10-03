@@ -1,0 +1,33 @@
+/* Stage 4.5 PAPER PORTFOLIO — clearly a simulation (dashed accent), compact tables, desktop-first. */
+#tab-strategy.ppf-mode #sl-body, #tab-strategy.ppf-mode #bt-body, #tab-strategy.ppf-mode #fj-body, #tab-strategy.ppf-mode #sf-body,
+#tab-strategy.ppf-mode #ev-body, #tab-strategy.ppf-mode #scn-body, #tab-strategy.ppf-mode #axh-body,
+#tab-strategy.ppf-mode #dbf-body { display: none; }
+#tab-strategy:not(.ppf-mode) #ppf-body { display: none; }
+.ppf { display: grid; gap: 10px; min-width: 0; }
+.ppf .cc-card { border-style: dashed; }
+.ppf-strip { border: 1px dashed var(--cc-warn); color: var(--cc-warn); border-radius: 999px; padding: 2px 10px; font-size: 12px;
+  font-weight: 700; letter-spacing: 0.05em; white-space: nowrap; }
+.ppf-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 6px 0; }
+.ppf-num { font-size: 20px; font-weight: 700; }
+.ppf-num.ppf-ok { color: var(--cc-ok); }
+.ppf-num.ppf-alert { color: var(--cc-alert); }
+.ppf-actions { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 6px; }
+.ppf-fields { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: flex-end; margin: 6px 0; }
+.ppf-fields input, .ppf-fields select { min-width: 150px; }
+.ppf-form { border-left: 3px solid var(--accent); }
+.ppf-confirm { font-size: 15px; margin: 4px 0; }
+.ppf-terms { margin: 4px 0; padding-left: 18px; }
+.ppf-table { width: 100%; font-size: 12.5px; }
+.ppf-table th { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: var(--text-dim); text-align: left; }
+.ppf-table td, .ppf-table th { vertical-align: baseline; padding-right: 10px; }
+.ppf-sym { font-weight: 700; white-space: nowrap; }
+.ppf-act { white-space: nowrap; text-align: right; }
+.ppf-act .cc-btn + .cc-btn { margin-left: 6px; }
+.ppf-lots td { padding: 4px 0 10px 12px; }
+.ppf-process { border-left: 3px solid var(--cc-info); padding: 3px 8px; margin-top: 6px; }
+.ppf-list { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 3px; }
+.ppf-more { margin-top: 6px; }
+.ppf-foot { margin: 0 2px; }
+/* Stage 4.6A: Local Simulator | Alpaca Paper — Read Only (two separate views, never merged) */
+.ppf-views { display: flex; flex-wrap: wrap; gap: 6px; }
+.ppf-views .cc-btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 700; }

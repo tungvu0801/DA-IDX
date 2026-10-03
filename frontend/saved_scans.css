@@ -1,0 +1,30 @@
+/* Stage 4.1 SAVED SCANS + STRATEGY ALERTS — compact, neutral (rule-state changes are informational, never emergencies). */
+.ssv { display: grid; gap: 10px; min-width: 0; }
+.ssv-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 10px; align-items: start; }
+@media (max-width: 1100px) { .ssv-grid { grid-template-columns: minmax(0, 1fr); } }
+.ssv-list, .ssv-alist, .ssv-texts { list-style: none; margin: 0; padding: 0; }
+.ssv-list { display: grid; gap: 8px; }
+.ssv-item { border: 1px solid var(--border); border-radius: 6px; padding: 7px 9px; display: grid; gap: 3px; min-width: 0; }
+.ssv-item.ssv-sel { border-color: var(--accent); }
+.ssv-line { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; min-width: 0; }
+.ssv-name { overflow-wrap: anywhere; }
+.ssv-facts { display: flex; flex-wrap: wrap; gap: 2px 16px; }
+.ssv-facts .cc-label { margin-right: 4px; }
+.ssv-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ssv-confirm { border-color: var(--cc-warn); }
+.ssv-form { display: grid; gap: 6px; border-left: 3px solid var(--accent); padding: 6px 10px; margin-bottom: 8px; }
+.ssv-form input[data-ssf="name"] { max-width: 420px; }
+.ssv-check { display: flex; gap: 6px; align-items: baseline; }
+.ssv-archived { margin-top: 8px; }
+.ssv-archived .ssv-item { opacity: 0.8; }
+.ssv-alist { display: grid; gap: 6px; }
+.ssv-alert { border-left: 3px solid var(--accent); padding: 4px 9px 6px; display: grid; gap: 3px; }
+.ssv-alert.ssv-read { border-left-color: var(--border); opacity: 0.85; }
+.ssv-texts li { font-size: 13px; overflow-wrap: anywhere; }
+.ssv-alert .ssv-texts li + li { margin-top: 2px; }
+.ssv-stored { border-left: 3px solid var(--border); padding: 3px 8px; margin-bottom: 4px; }
+.ssv-table { width: auto; min-width: 420px; }
+.ssv-table td, .ssv-table th { padding-right: 18px; }
+.ssv-hist, .ssv-last { margin-top: 4px; }
+.ssv-hist .ssv-texts li { padding: 2px 0; }
+.fa-saved { display: grid; gap: 2px; border-left: 3px solid var(--border); padding: 2px 8px; margin-top: 4px; }

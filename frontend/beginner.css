@@ -1,0 +1,66 @@
+/* Stage 2.7E beginner views (market context, beginner portfolio, trader review). Uses style.css variables. */
+.mk-badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); letter-spacing: 0.02em; white-space: nowrap; }
+.mk-good { color: var(--green); border-color: var(--green); }
+.mk-mid { color: var(--amber); border-color: var(--amber); }
+.mk-bad { color: var(--red); border-color: var(--red); }
+.mk-info { color: var(--accent); border-color: var(--accent); }
+.mk-card h2 { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mk-refresh, .pb-review { background: var(--bg-card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 12px; }
+.mk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 10px 0; }
+.mk-list { list-style: none; padding-left: 0; margin: 6px 0; }
+.mk-list li { padding: 3px 0; font-size: 13px; overflow-wrap: anywhere; }
+.mk-pos { color: var(--text); }
+.mk-neg { color: var(--text); }
+.mk-row { cursor: pointer; }
+.pb-acct { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+.pb-acct-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; position: relative; }
+.pb-acct-val { font-weight: 600; font-variant-numeric: tabular-nums; }
+.pb-note { font-size: 13px; background: var(--badge-bg); border-radius: 6px; padding: 8px 10px; margin: 10px 0 4px; }
+.pf-info { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 13px; padding: 0 2px; }
+.pf-tipbox { display: none; font-size: 12px; color: var(--text-dim); background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; margin-top: 4px; flex-basis: 100%; }
+.pf-tipbox.pf-tip-open { display: block; }
+.pb-pos-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+.pb-pos { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 12px; min-width: 0; }
+.pb-pos-head { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.pb-pos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; font-size: 13px; }
+.pb-pos-grid .pf-label { display: block; font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+.pb-wide { grid-column: 1 / -1; }
+.pb-review { margin-top: 10px; }
+.pb-funding { display: grid; gap: 6px; margin: 8px 0; font-size: 13px; }
+.pb-insufficient { border: 2px solid var(--red); border-radius: 8px; padding: 12px; margin: 10px 0; }
+.pb-insufficient h3 { color: var(--red); margin-top: 0; }
+.pb-layers { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 8px 0; }
+.pb-layers > div { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+.pb-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.pb-two h4, .pb-summary h4 { margin: 8px 0 4px; font-size: 13px; }
+.pb-lesson { border-left: 4px solid var(--accent); padding: 8px 12px; background: var(--badge-bg); font-weight: 600; margin: 8px 0; }
+.pb-summary { background: var(--bg-card); border: 1px solid var(--accent); border-radius: 8px; padding: 12px; margin-top: 14px; }
+.pb-summary h3 { margin-top: 0; }
+.pb-summary-grid { display: grid; grid-template-columns: minmax(140px, auto) 1fr; gap: 4px 12px; font-size: 13px; }
+.pb-why { margin-top: 12px; }
+.pb-why summary, .tr-check summary, .tr-lot summary { cursor: pointer; font-weight: 600; }
+.tr-lessons { border: 1px solid var(--accent); border-radius: 8px; padding: 12px; margin-bottom: 12px; font-weight: 700; }
+.tr-lessons div { padding: 2px 0; }
+.tr-areas { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 8px 0; }
+.tr-area { background: var(--bg-card); border: 1px solid var(--border); border-left: 4px solid var(--border); border-radius: 6px; padding: 8px; font-size: 13px; min-width: 0; overflow-wrap: anywhere; }
+.tr-SUPPORTIVE { border-left-color: var(--green); }
+.tr-CAUTION { border-left-color: var(--red); }
+.tr-NEUTRAL { border-left-color: var(--amber); }
+.tr-review { margin-top: 10px; }
+.tr-plan { align-items: stretch; }
+.tr-plan label, .tr-q { display: grid; gap: 4px; flex: 1 1 260px; font-size: 13px; }
+.tr-plan textarea, .tr-q input { background: var(--bg-card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px; width: 100%; }
+.tr-check { margin: 10px 0; }
+.tr-q { margin: 6px 0; }
+.tr-lot { border-bottom: 1px solid var(--border); padding: 6px 0; }
+.tr-hindsight { background: var(--badge-bg); border-radius: 6px; padding: 8px; font-size: 13px; margin-top: 6px; }
+@media (max-width: 600px) {
+  .pb-pos-grid { grid-template-columns: 1fr; }
+  .pb-summary-grid { grid-template-columns: 1fr 1fr; }
+  .pf-form { flex-direction: column; align-items: stretch; }
+}
+
+/* ---- Stage 2.8E: same palette and base size as the dashboard (presentation only) ------------------------------- */
+.mk-alert { color: #e3772e; border-color: #e3772e; }                /* caution / concentration = orange */
+.mk-dim { color: var(--text-dim); border-color: var(--border); }    /* unknown / stale = grey */
+#pf-body { font-size: 14px; }

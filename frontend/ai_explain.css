@@ -1,0 +1,17 @@
+/* Stage 3.8 AI EXPLANATION — a compact, clearly separate panel; the deterministic result above it is never replaced. */
+.ax-slot { display: grid; gap: 6px; min-width: 0; border-top: 1px dashed var(--border); padding-top: 6px; }
+.ax-row { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.ax-confirm { border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px; padding: 8px 10px;
+  display: grid; gap: 4px; background: var(--badge-bg); }
+.ax-panel { border: 1px solid var(--border); border-left: 3px solid var(--cc-info); border-radius: 8px; padding: 8px 10px;
+  display: grid; gap: 6px; min-width: 0; overflow-wrap: anywhere; }
+.ax-head { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.ax-head .cc-btn { margin-left: auto; }
+.ax-summary { margin: 0; font-size: 13.5px; }
+.ax-sec ul { list-style: none; margin: 2px 0 0; padding: 0; display: grid; gap: 3px; }
+.ax-sec li { font-size: 13px; padding-left: 8px; border-left: 2px solid var(--border); }
+.ax-mark { font-weight: 800; }
+.ax-foot { border-top: 1px solid var(--border); padding-top: 4px; }
+.ax-tech > summary { cursor: pointer; display: list-item; }
+.ax-error { border-left: 3px solid var(--cc-warn); padding: 3px 8px; }
+.ax-warn { color: var(--cc-warn); }

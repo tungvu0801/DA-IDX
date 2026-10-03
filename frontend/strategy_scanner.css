@@ -1,0 +1,28 @@
+/* Stage 4.0 STRATEGY SCANNER — a compact, desktop-first table inside Strategy Lab (visibility follows the Evidence pattern). */
+#tab-strategy.scn-mode #sl-body, #tab-strategy.scn-mode #bt-body, #tab-strategy.scn-mode #fj-body,
+#tab-strategy.scn-mode #sf-body, #tab-strategy.scn-mode #ev-body, #tab-strategy.scn-mode #axh-body { display: none; }
+#tab-strategy:not(.scn-mode) #scn-body { display: none; }
+.scn { display: grid; gap: 10px; min-width: 0; }
+.scn-controls { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: flex-end; }
+.scn-controls select, .scn-controls input { min-width: 150px; }
+.scn-custom input { min-width: 240px; }
+.scn-session { font-weight: 600; padding: 4px 0; }
+.scn-buttons { display: flex; gap: 8px; align-items: center; }
+.scn-busy { border-left: 3px solid var(--accent); padding: 4px 8px; margin-top: 6px; }
+.scn-stale { border-left: 3px solid var(--cc-warn); padding: 3px 8px; margin-top: 6px; }
+.scn-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; margin: 4px 0 8px; }
+.scn-num { font-size: 18px; font-weight: 700; }
+.scn-tools { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.scn-search { min-width: 160px; }
+.scn-table { width: 100%; table-layout: auto; }
+.scn-table td, .scn-table th { vertical-align: baseline; }
+.scn-group th { text-align: left; font-size: 12px; letter-spacing: 0.05em; color: var(--text-dim); padding-top: 12px; }
+.scn-sym { font-weight: 700; white-space: nowrap; }
+.scn-main { min-width: 260px; overflow-wrap: anywhere; }
+.scn-act { white-space: nowrap; text-align: right; }
+.scn-act .cc-btn + .cc-btn { margin-left: 6px; }
+.scn-detailbox { display: grid; gap: 6px; padding: 6px 4px 10px 10px; border-left: 2px solid var(--border); }
+.scn-detailbox .sf-table { font-size: 12.5px; width: auto; }
+.scn-detailbox .sf-table th { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: var(--text-dim); }
+.scn-feats, .scn-warns { margin: 2px 0 0; padding-left: 16px; }
+.sf-card.sf-focus { outline: 2px solid var(--accent); outline-offset: 2px; }

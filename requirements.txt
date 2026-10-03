@@ -1,0 +1,23 @@
+alpaca-py>=0.44.0
+pandas>=3.0.6
+numpy>=2.5.3
+python-dotenv>=1.2.3
+
+# Event intelligence (Stage 2.6) — real HTTP calls to FRED, and HTML parsing
+# of the official Fed FOMC calendar page. `requests` was already an
+# indirect dependency of alpaca-py; listed explicitly now that data/events/
+# imports it directly.
+requests>=2.34.2
+beautifulsoup4>=4.12.0
+
+# Web dashboard backend
+fastapi>=0.141.1
+uvicorn[standard]>=0.54.0
+
+# Optional — only needed for the AI Technical Agent. Everything else
+# (scanner, watchlist, dashboard) works with no LLM key configured.
+anthropic>=1.8.0
+
+# Optional — only needed for `python main.py --sync-robinhood`.
+# Unofficial Robinhood client; see robinhood_sync.py for caveats.
+robin_stocks>=3.4.0

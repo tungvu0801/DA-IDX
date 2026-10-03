@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Stock Agent Dashboard</title>
+<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="portfolio.css" />
+<link rel="stylesheet" href="beginner.css" />
+<link rel="stylesheet" href="command_center.css" />
+<link rel="stylesheet" href="daily_review.css" />
+<link rel="stylesheet" href="strategy_lab.css" />
+<link rel="stylesheet" href="backtest_lab.css" />
+<link rel="stylesheet" href="forward_journal.css" />
+<link rel="stylesheet" href="strategy_fit.css" />
+<link rel="stylesheet" href="evidence.css" />
+<link rel="stylesheet" href="ai_explain.css" />
+<link rel="stylesheet" href="ai_history.css" />
+<link rel="stylesheet" href="strategy_scanner.css" />
+<link rel="stylesheet" href="saved_scans.css" />
+<link rel="stylesheet" href="daily_brief.css" />
+<link rel="stylesheet" href="brief_delivery.css" />
+<link rel="stylesheet" href="paper_portfolio.css" />
+<link rel="stylesheet" href="alpaca_paper.css" />
+<link rel="stylesheet" href="alpaca_orders.css" />
+</head>
+<body>
+<header class="topbar">
+  <h1>Stock Agent Dashboard</h1>
+  <div id="ai-usage-pill" class="status-pill" title="AI usage today">AI usage: —</div>
+  <div id="status-pill" class="status-pill">connecting…</div>
+</header>
+
+<div class="disclaimer">
+  This is rule-based research output, not licensed financial advice. Signals and scores describe past/current
+  market activity — they are not predictions, and you make every trade decision yourself. This tool never places
+  a trade.
+</div>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-tab="overview">Dashboard</button>
+  <button class="tab-btn" data-tab="daily">Daily Review</button>
+  <button class="tab-btn" data-tab="watchlist">Watchlist</button>
+  <button class="tab-btn" data-tab="agent">AI Agent</button>
+  <button class="tab-btn" data-tab="alerts">Alerts</button>
+  <button class="tab-btn" data-tab="setups">Research Setups</button>
+  <button class="tab-btn" data-tab="history">Research History</button>
+  <button class="tab-btn" data-tab="portfolio">Portfolio</button>
+  <button class="tab-btn" data-tab="review">Trader Review</button>
+  <button class="tab-btn" data-tab="strategy">Strategy Lab</button>
+  <button class="tab-btn" data-tab="paper">Paper Trades</button>
+  <button class="tab-btn" data-tab="settings">Settings</button>
+</nav>
+
+<main>
+  <section id="tab-overview" class="tab-panel active">
+    <div class="mode-toggle" id="dash-mode-toggle">
+      <button data-mode="beginner" class="active">Beginner</button>
+      <button data-mode="advanced">Advanced</button>
+    </div>
+    <div id="dash-beginner"></div>
+    <div id="dash-advanced">
+    <div class="scan-meta" id="scan-meta"></div>
+
+    <div class="section">
+      <h2>🤖 AI Usage Today</h2>
+      <div id="ai-usage-detail" class="scan-meta">Loading…</div>
+    </div>
+
+    <div class="section">
+      <h2>🎯 AI Opportunities <span class="hint">(highest Attention Score across all categories)</span></h2>
+      <div id="ai-opportunities" class="card-grid"></div>
+    </div>
+
+    <div class="section-grid">
+      <div class="section">
+        <h2>🔥 Top Gainers</h2>
+        <table class="data-table" id="table-gainers"></table>
+      </div>
+      <div class="section">
+        <h2>📉 Top Losers</h2>
+        <table class="data-table" id="table-losers"></table>
+      </div>
+      <div class="section">
+        <h2>👀 Unusual Volume</h2>
+        <table class="data-table" id="table-volume"></table>
+      </div>
+      <div class="section">
+        <h2>🚀 Momentum Stocks</h2>
+        <table class="data-table" id="table-momentum"></table>
+      </div>
+      <div class="section">
+        <h2>🧭 Possible Breakouts</h2>
+        <table class="data-table" id="table-breakouts"></table>
+      </div>
+      <div class="section">
+        <h2>🧱 Approaching Support</h2>
+        <table class="data-table" id="table-support"></table>
+      </div>
+      <div class="section">
+        <h2>🚧 Approaching Resistance</h2>
+        <table class="data-table" id="table-resistance"></table>
+      </div>
+      <div class="section">
+        <h2>⚡ Volatility Expansion</h2>
+        <table class="data-table" id="table-volatility"></table>
+      </div>
+    </div>
+    </div>
+  </section>
+
+  <section id="tab-watchlist" class="tab-panel">
+    <div class="add-symbol-row">
+      <input id="add-symbol-input" type="text" placeholder="Add ticker (e.g. NVDA)" maxlength="10" />
+      <button id="add-symbol-btn">Add to Watchlist</button>
+      <span id="add-symbol-msg" class="hint"></span>
+    </div>
+    <div id="watchlist-cards" class="card-grid watchlist-grid"></div>
+  </section>
+
+  <section id="tab-agent" class="tab-panel">
+    <p class="hint">
+      Ask about a stock, the market, or your watchlist. The assistant calls this app's real data tools
+      (never its own memorized prices/news) and never recommends buying, selling, holding, or trimming.
+    </p>
+    <div id="chat-log" class="chat-log"></div>
+    <div class="chat-input-row">
+      <input id="chat-input" type="text" placeholder='e.g. "Why is MU moving today?" or "Analyze NVDA for a 2-5 day swing"' />
+      <button id="chat-send-btn">Send</button>
+    </div>
+    <div class="hint" style="margin-top:8px;">
+      Try: "Which stocks have unusual volume?" &middot; "Compare MU and SNDK" &middot; "Show stocks with RVOL above 2"
+    </div>
+  </section>
+
+  <section id="tab-alerts" class="tab-panel">
+    <div id="alerts-list"></div>
+  </section>
+
+  <section id="tab-setups" class="tab-panel">
+    <div class="add-symbol-row">
+      <input id="setup-symbol-input" type="text" placeholder="Ticker (e.g. MU)" maxlength="10" />
+      <input id="setup-portfolio-input" type="number" placeholder="Portfolio value ($)" value="10000" min="1" />
+      <button id="setup-load-btn">Load Research Setup</button>
+    </div>
+    <div id="setup-result"></div>
+  </section>
+
+  <section id="tab-history" class="tab-panel">
+    <div class="section">
+      <div class="add-symbol-row">
+        <button id="history-refresh-outcomes-btn">Update Outcomes Now</button>
+        <span id="history-update-msg" class="hint"></span>
+      </div>
+      <h2>Research History</h2>
+      <div id="history-list">Loading…</div>
+    </div>
+    <div class="section">
+      <h2>Performance</h2>
+      <div class="hint">
+        These are historical observations of this agent's own saved research — not a probability of future
+        returns, and not investment advice.
+      </div>
+      <div id="performance-summary">Loading…</div>
+      <div id="performance-buckets"></div>
+    </div>
+  </section>
+
+  <section id="tab-portfolio" class="tab-panel">
+    <div class="pf-readonly-note">
+      Read-only view of your Robinhood holdings via the local gateway. This app never places, prepares, changes or
+      cancels orders. Numbers are calculated by Python; the AI only explains them.
+    </div>
+    <div class="mode-toggle" id="pf-mode-toggle">
+      <button data-mode="beginner" class="active">Beginner</button>
+      <button data-mode="advanced">Advanced</button>
+      <button id="pf-refresh-btn">Refresh</button>
+    </div>
+    <div id="pf-body">Open this tab to load your portfolio.</div>
+  </section>
+
+  <section id="tab-daily" class="tab-panel">
+    <div id="dr-body">Open this tab to build today's portfolio + watchlist review.</div>
+  </section>
+
+  <section id="tab-strategy" class="tab-panel">
+    <nav id="sl-subnav" aria-label="Strategy Lab workspaces"></nav>
+    <div id="sl-body">Open this tab to build a strategy.</div>
+    <div id="bt-body"></div>
+    <div id="fj-body"></div>
+    <div id="sf-body"></div>
+    <div id="ev-body"></div>
+    <div id="scn-body"></div>
+    <div id="axh-body"></div>
+    <div id="dbf-body"></div>
+    <div id="ppf-body"></div>
+  </section>
+
+  <section id="tab-review" class="tab-panel">
+    <div id="tr-body">Open this tab to review a trade decision.</div>
+  </section>
+
+  <section id="tab-paper" class="tab-panel">
+    <div class="unavailable-panel">
+      <h2>Paper Trades</h2>
+      <p>Not available in this version. This stage focuses on research and analysis only — no simulated
+      or real trades are placed anywhere in this app. Paper trading (local SQLite simulation, human-approved,
+      never a real broker order) is planned for a future stage.</p>
+    </div>
+  </section>
+
+  <section id="tab-settings" class="tab-panel">
+    <div class="unavailable-panel">
+      <h2>Settings</h2>
+      <p>Not available in this version. All settings are currently configured via <code>config.py</code> and
+      <code>.env</code> on the server (scan intervals, evidence weights, risk thresholds, position-sizing
+      limits, AI call limits, etc.) — see the README for the full list.</p>
+    </div>
+  </section>
+</main>
+
+<div id="detail-modal" class="modal hidden">
+  <div class="modal-content">
+    <button id="detail-close" class="modal-close">×</button>
+    <div id="detail-body">Loading…</div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script src="research_batch.js"></script>
+<script src="stock_result.js"></script>
+<script src="command_center.js"></script>
+<script src="market.js"></script>
+<script src="portfolio_beginner.js"></script>
+<script src="portfolio.js"></script>
+<script src="trader_review.js"></script>
+<script src="daily_review.js"></script>
+<script src="strategy_lab.js"></script>
+<script src="backtest_lab.js"></script>
+<script src="forward_journal.js"></script>
+<script src="forward_automation.js"></script>
+<script src="strategy_fit.js"></script>
+<script src="evidence.js"></script>
+<script src="ai_explain.js"></script>
+<script src="strategy_scanner.js"></script>
+<script src="saved_scans.js"></script>
+<script src="daily_brief.js"></script>
+<script src="brief_delivery.js"></script>
+<script src="paper_portfolio.js"></script>
+<script src="alpaca_paper.js"></script>
+<script src="alpaca_orders.js"></script>
+<script src="ai_history.js"></script>
+</body>
+</html>

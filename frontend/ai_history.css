@@ -1,0 +1,16 @@
+/* Stage 3.9 AI EXPLANATION HISTORY — a small Strategy Lab workspace (visibility follows the Evidence pattern). */
+#tab-strategy.axh-mode #sl-body, #tab-strategy.axh-mode #bt-body, #tab-strategy.axh-mode #fj-body,
+#tab-strategy.axh-mode #sf-body, #tab-strategy.axh-mode #ev-body { display: none; }
+#tab-strategy:not(.axh-mode) #axh-body { display: none; }
+.axh { display: grid; gap: 8px; max-width: 980px; }
+.axh-state { display: inline-flex; gap: 8px; align-items: center; }
+.axh-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.axh-item { width: 100%; text-align: left; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 14px;
+  align-items: baseline; background: var(--bg-panel); color: inherit; border: 1px solid var(--border); border-radius: 8px;
+  padding: 7px 10px; cursor: pointer; font: inherit; }
+.axh-item:hover, .axh-item:focus-visible { border-color: var(--accent); }
+.axh-what { font-weight: 600; overflow-wrap: anywhere; }
+.axh-facts { display: grid; gap: 3px; }
+.axh-trace { margin: 2px 0 0; padding-left: 16px; }
+.ax-hist { margin-top: 4px; }
+@media (max-width: 900px) { .axh-item { grid-template-columns: minmax(0, 1fr); } }

@@ -1,0 +1,10 @@
+/* Stage 4.3 DESKTOP DELIVERY — a compact, neutral card at the end of the Daily Brief. */
+.bdl { display: grid; gap: 6px; }
+.bdl.bdl-on { border-left: 3px solid var(--cc-ok); }
+.bdl-state { font-size: 13px; }
+.bdl-actions { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.bdl-only { display: flex; gap: 6px; align-items: baseline; }
+.bdl-test { border-left: 3px solid var(--cc-info); padding: 2px 8px; }
+.bdl-list { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 3px; }
+.bdl-ident { display: grid; gap: 3px; }
+.bdl-ident .cc-label { display: inline-block; min-width: 190px; }

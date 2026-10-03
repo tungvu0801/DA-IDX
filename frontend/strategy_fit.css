@@ -1,0 +1,83 @@
+/* Stage 3.4 STRATEGY FIT — a Strategy Lab workspace; reuses the dashboard card / tag / button tokens.
+   Neutral colours: RULES MET describes saved rules, it is not advice. The Builder / Backtest / Forward Journal panels are
+   only hidden while Strategy Fit is shown (never re-rendered). */
+#tab-strategy.sf-mode #sl-body, #tab-strategy.sf-mode #bt-body, #tab-strategy.sf-mode #fj-body { display: none; }
+#tab-strategy:not(.sf-mode) #sf-body { display: none; }
+.sf-subnav { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin: 0 0 10px; }
+.sf-subnav button { background: var(--bg-card); color: var(--text-dim); border: none; padding: 7px 18px; font-size: 13px;
+  cursor: pointer; min-height: 34px; }
+.sf-subnav button + button { border-left: 1px solid var(--border); }
+.sf-subnav button.active { color: var(--text); background: var(--badge-bg); box-shadow: inset 0 -3px 0 var(--accent); font-weight: 700; }
+.sf { display: grid; gap: 10px; min-width: 0; }
+.sf-head .cc-head { margin-bottom: 6px; }
+.sf-strip { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--text-dim); border: 1px solid var(--border);
+  border-radius: 10px; padding: 2px 8px; white-space: nowrap; }
+.sf-controls { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: flex-end; }
+.sf-field { display: grid; gap: 3px; }
+.sf-manual { display: inline-flex; gap: 6px; }
+.sf input, .sf select { background: var(--bg-card); color: var(--text); border: 1px solid var(--border); border-radius: 6px;
+  padding: 5px 7px; font-size: 13px; min-height: 30px; min-width: 0; }
+.sf select[data-sf="symbol"] { min-width: 170px; }
+.sf input[data-sf="manual"] { width: 110px; text-transform: uppercase; }
+.sf input[type="checkbox"] { min-height: 0; }
+.sf-old { display: inline-flex; gap: 6px; align-items: center; min-height: 30px; }
+.sf button:disabled { opacity: 0.45; cursor: not-allowed; }
+.sf-notes { display: grid; gap: 2px; margin-top: 8px; }
+.sf-refreshing { border-left: 3px solid var(--accent); background: var(--badge-bg); border-radius: 6px; padding: 6px 10px; font-size: 13px; }
+.sf-summary { display: grid; gap: 8px; }
+.sf-top { display: grid; grid-template-columns: repeat(auto-fill, minmax(205px, 1fr)); gap: 8px 16px; align-items: start; }
+.sf-big { font-size: 20px; font-weight: 800; }
+.sf-val { font-size: 14px; font-weight: 700; margin-top: 2px; }
+.sf-counts { display: flex; flex-wrap: wrap; gap: 4px 18px; color: var(--text-dim); font-size: 13px; }
+.sf-counts b { color: var(--text); font-variant-numeric: tabular-nums; }
+.sf-quote { border-left: 3px solid var(--border); padding: 2px 8px; }
+.sf-warns { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
+.sf-warns li { border-left: 3px solid var(--cc-warn); padding: 2px 8px; font-size: 12.5px; overflow-wrap: anywhere; }
+.sf-kv { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 6px 16px; }
+.sf-kv > div { display: grid; gap: 2px; overflow-wrap: anywhere; }
+.sf-filters { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.sf-filters button { background: var(--bg-card); color: var(--text-dim); border: 1px solid var(--border); border-radius: 16px;
+  padding: 4px 12px; font-size: 12.5px; cursor: pointer; min-height: 30px; }
+.sf-filters button.active { color: var(--accent); border-color: var(--accent); font-weight: 700; }
+.sf-n { font-variant-numeric: tabular-nums; opacity: 0.8; margin-left: 2px; }
+.sf-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(410px, 1fr)); gap: 10px; align-items: start; }
+@media (max-width: 900px) { .sf-cards { grid-template-columns: 1fr; } }
+.sf-card { background: var(--bg-card); border: 1px solid var(--border); border-left: 4px solid var(--border); border-radius: 8px;
+  padding: 10px 12px; display: grid; gap: 6px; min-width: 0; align-content: start; }
+.sf-card.sf-k-info { border-left-color: var(--cc-info); }
+.sf-card.sf-k-warn { border-left-color: var(--cc-warn); }
+.sf-card.sf-k-alert { border-left-color: var(--cc-alert); }
+.sf-card.sf-k-bad { border-left-color: var(--cc-bad); }
+.sf-card.sf-compact { opacity: 0.92; }
+.sf-card-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.sf-name { font-size: 15px; text-transform: uppercase; letter-spacing: 0.02em; overflow-wrap: anywhere; }
+.sf-ver { font-size: 12px; color: var(--text-dim); }
+.sf-card-head .cc-tag { margin-left: auto; }
+.sf-count { font-size: 14px; }
+.sf-count b { font-variant-numeric: tabular-nums; }
+.sf-sum { margin: 0; font-size: 13px; }
+.sf-conds, .sf-plain, .sf-runs { list-style: none; padding: 0; margin: 0; display: grid; gap: 3px; }
+.sf-conds ul { list-style: none; padding-left: 18px; margin: 3px 0 0; display: grid; gap: 3px; }
+.sf-conds li { font-size: 13px; overflow-wrap: anywhere; }
+.sf-plain li { font-size: 12.5px; padding-left: 10px; border-left: 2px solid var(--border); }
+.sf-mark { display: inline-block; width: 14px; text-align: center; font-weight: 800; }
+.sf-mark.cc-ok { color: var(--cc-ok); } .sf-mark.cc-bad { color: var(--cc-bad); } .sf-mark.cc-warn { color: var(--cc-warn); }
+.sf-mark.cc-dim { color: var(--text-dim); }
+.sf-drawer { border-top: 1px solid var(--border); padding-top: 6px; min-width: 0; }
+.sf-drawer > summary { cursor: pointer; font-size: 13px; display: list-item; }
+.sf-drawer-body { display: grid; gap: 6px; padding: 6px 0 2px; min-width: 0; }
+.sf-drawer-body > .cc-btn { justify-self: start; }
+.sf-evidence { display: grid; gap: 0; }
+.sf-run { border-left: 3px solid var(--border); padding: 2px 8px; display: grid; gap: 1px; font-size: 13px; }
+.sf-flist { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
+.sf-flist li { font-size: 12.5px; border-left: 2px solid var(--border); padding: 1px 8px; overflow-wrap: anywhere; }
+.sf-jstate { border: 1px dashed var(--border); border-radius: 8px; padding: 6px 10px; display: grid; gap: 3px; }
+.sf-jstate .cc-btn { justify-self: start; }
+.sf-tablewrap { overflow-x: auto; max-width: 100%; max-height: 380px; overflow-y: auto; }
+.sf-tablewrap th { position: sticky; top: 0; background: var(--bg-panel); }
+.sf-trace td, .sf-feat td { font-size: 12.5px; vertical-align: top; }
+.sf-feat td:nth-child(4) { min-width: 180px; }
+.sf-grp td { background: var(--badge-bg); }
+.sf-fresh > summary { cursor: pointer; display: list-item; }
+.sf-fresh .sf-kv { margin-top: 6px; }
+.sf-empty { padding: 8px 0; }

@@ -1,0 +1,15 @@
+/* Stage 4.6B ALPACA PAPER — MANUAL ORDERS: a broker-write pane, visually distinct from the local simulator (dashed) and the
+   read-only Alpaca pane (info accent): a persistent amber PAPER banner and a warn accent. */
+.apo { display: grid; gap: 10px; min-width: 0; }
+.ppf .apo .cc-card { border-style: solid; border-left: 3px solid var(--cc-warn); }
+.apo-banner { border: 1px solid var(--cc-warn); color: var(--cc-warn); border-radius: 8px; padding: 6px 12px; font-weight: 700;
+  font-size: 13px; letter-spacing: 0.03em; }
+.apo-row { display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: center; }
+.apo-row .cc-btn { margin-left: 4px; }
+.apo-order { font-size: 16px; margin: 4px 0 6px; }
+.apo-facts { display: grid; gap: 3px; margin: 4px 0; }
+.apo-facts code, .apo-preview code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; overflow-wrap: anywhere; }
+.apo-rules { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 2px; }
+.apo-err { color: var(--cc-alert); }
+.apo-why { color: var(--cc-warn); }
+.apo .apo-confirm:disabled, .apo [data-apo]:disabled { opacity: 0.45; cursor: not-allowed; }

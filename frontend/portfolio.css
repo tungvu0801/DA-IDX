@@ -1,0 +1,54 @@
+/* Stage 2.7C Portfolio tab. Reuses the dashboard's variables and base classes from style.css. */
+.pf-readonly-note { font-size: 12px; color: var(--text-dim); margin-bottom: 12px; }
+.pf-banner { border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; margin-bottom: 14px; font-size: 13px; }
+.pf-banner.pf-warn { border-color: var(--amber); color: var(--amber); }
+.pf-banner.pf-bad { border-color: var(--red); color: var(--red); }
+.pf-banner.pf-info { color: var(--text-dim); }
+.pf-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.pf-kpi { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.pf-kpi .pf-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+.pf-kpi .pf-value { font-size: 20px; font-weight: 600; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.pf-kpi .pf-sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+.pf-gap { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pf-gap .pf-kpi .pf-label { color: var(--amber); }
+.data-table td.pf-num, .data-table th.pf-num { text-align: right; font-variant-numeric: tabular-nums; }
+.pf-bar-row { display: grid; grid-template-columns: 180px 1fr 70px; align-items: center; gap: 10px; font-size: 13px; margin: 6px 0; }
+.pf-bar { height: 10px; background: var(--badge-bg); border-radius: 5px; overflow: hidden; }
+.pf-bar > span { display: block; height: 100%; background: var(--accent); }
+.pf-q { font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--border); }
+.pf-q-OK { color: var(--green); }
+.pf-q-STALE, .pf-q-DEGRADED { color: var(--amber); border-color: var(--amber); }
+.pf-q-UNRELIABLE, .pf-q-UNAVAILABLE { color: var(--red); border-color: var(--red); }
+.pf-muted { color: var(--text-dim); }
+.pf-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+.pf-form input, .pf-form select, .pf-form button {
+  background: var(--bg-card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px;
+}
+.pf-form button { cursor: pointer; }
+.pf-adv { display: none; }
+.pf-advanced .pf-adv { display: block; }
+.pf-advanced .data-table .pf-adv { display: table-cell; }
+.pf-lots { margin: 8px 0 16px; }
+.pf-small { font-size: 12px; }
+/* Stage 2.7D Portfolio Attention cards */
+.pf-att-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.pf-att { background: var(--bg-card); border: 1px solid var(--border); border-left: 4px solid var(--border); border-radius: 8px; padding: 12px; min-width: 0; }
+.pf-att-HIGH { border-left-color: var(--red); }
+.pf-att-MEDIUM { border-left-color: var(--amber); }
+.pf-att-LOW, .pf-att-INFO { border-left-color: var(--accent); }
+.pf-att-OK { border-left-color: var(--green); }
+.pf-att-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.pf-att .pf-value { font-size: 18px; font-weight: 600; margin: 6px 0 2px; overflow-wrap: anywhere; }
+.pf-att-status { font-size: 13px; margin: 6px 0 4px; }
+.pf-sev { font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--border); white-space: nowrap; }
+.pf-sev-HIGH { color: var(--red); border-color: var(--red); }
+.pf-sev-MEDIUM { color: var(--amber); border-color: var(--amber); }
+.pf-sev-LOW, .pf-sev-INFO { color: var(--accent); border-color: var(--accent); }
+.pf-sev-OK { color: var(--green); border-color: var(--green); }
+.pf-sev-UNAVAILABLE { color: var(--text-dim); }
+.pf-adv h3, .ai-box h3 { font-size: 14px; margin: 14px 0 6px; }
+.pf-att .pf-sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+
+/* ---- Stage 2.8E: policy HIGH (concentration / attention) is orange, as on the dashboard ------------------------- */
+.pf-sev-HIGH { color: #e3772e; border-color: #e3772e; }
+.pf-att-HIGH { border-left-color: #e3772e; }

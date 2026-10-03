@@ -1,0 +1,55 @@
+/* Stage 2.7G Daily Review. Builds on command_center.css (cc-* tokens). Mobile-first.
+   Green/red only on observed P&L / price moves; states use blue (ok/info), amber (warn) and orange (alert). */
+.dr-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.dr-mode { margin: 0; }
+.dr-strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 8px 0; }
+.dr-strip > div { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; min-width: 0; overflow-wrap: anywhere; }
+.dr-attn { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.5; }
+.dr-attn li { padding: 3px 0; overflow-wrap: anywhere; }
+.dr-coverage { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.dr-group { margin-top: 14px; }
+/* 2.7G.1 system status + research coverage */
+.dr-status { display: grid; gap: 2px; margin: 8px 0; padding: 8px 10px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; }
+.dr-status-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; min-width: 0; overflow-wrap: anywhere; }
+.dr-status-row > span:first-child { min-width: 96px; color: var(--text-dim); }
+.dr-coverage { flex-direction: column; align-items: stretch; }
+.dr-cov-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.dr-batch { border-top: 1px dashed var(--border); padding-top: 8px; font-size: 13px; display: grid; gap: 2px; }
+.dr-confirm table { margin: 6px 0 10px; }
+.dr-group h3 { font-size: 12px; letter-spacing: 0.05em; color: var(--text-dim); margin: 0 0 8px; }
+.dr-cards { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.dr-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; min-width: 0; overflow-wrap: anywhere; }
+.dr-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.dr-pnl { font-weight: 700; font-variant-numeric: tabular-nums; }
+.dr-state { margin: 8px 0 2px; }
+.dr-state .cc-tag { font-size: 13px; padding: 4px 10px; white-space: normal; }
+.dr-summary { font-size: 12px; font-weight: 700; letter-spacing: 0.03em; color: var(--text-dim); margin-top: 4px; }
+.dr-next { font-size: 13px; margin: 6px 0; line-height: 1.4; }
+.dr-why { margin: 4px 0; }
+.dr-watch { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; align-items: baseline; border-top: 1px solid var(--border); padding-top: 6px; margin-top: 6px; }
+.dr-details { margin-top: 8px; font-size: 13px; }
+.dr-details > summary { cursor: pointer; font-weight: 600; color: var(--accent); }
+.dr-sub { margin-top: 10px; }
+.dr-kv { border-collapse: collapse; width: 100%; font-size: 12px; margin-top: 4px; }
+.dr-kv th { text-align: left; color: var(--text-dim); font-weight: 600; padding: 3px 8px 3px 0; width: 42%; vertical-align: top; }
+.dr-kv td { padding: 3px 0; overflow-wrap: anywhere; }
+.dr-layers { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; font-size: 12px; color: var(--text-dim); }
+.dr-layers span { background: var(--badge-bg); border-radius: 6px; padding: 3px 8px; color: var(--text); }
+.dr-conflict { border-left: 3px solid var(--amber); padding: 4px 8px; margin: 4px 0; font-size: 12px; }
+.dr-two { display: grid; grid-template-columns: 1fr; gap: 4px 12px; }
+.dr-li-x::before { content: "✗ "; color: var(--amber); }
+.dr-pattern { border: 1px solid var(--amber); border-radius: 8px; padding: 8px 10px; margin-top: 10px; font-size: 12px; }
+.dr-pattern p { margin: 4px 0; }
+.dr-feedback { border-top: 1px dashed var(--border); margin-top: 10px; padding-top: 8px; display: grid; gap: 6px; }
+.dr-feedback .cc-btn { margin: 2px 0; }
+.dr-picked { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+@media (min-width: 720px) {
+  .dr-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .dr-cards { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+  .dr-two { grid-template-columns: 1fr 1fr; }
+  .dr-cov-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .dr-status { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .dr-status .cc-label { grid-column: 1 / -1; }
+  .dr-status-row { flex-direction: column; align-items: flex-start; gap: 2px; }
+}
