@@ -1,0 +1,13 @@
+# Line endings for checkouts (added with the GitHub Actions CI). File contents in the repository are unchanged.
+#
+# Every text file is checked out exactly as committed (LF), whatever the machine's core.autocrlf says
+# (GitHub's windows-latest runner sets core.autocrlf=true, which would otherwise rewrite every file to CRLF).
+* text=auto eol=lf
+
+# These four files are byte-pinned WITH Windows CRLF line endings by the Stage 3.1-3.4 freeze tests
+# (FROZEN_MODULES in tests/test_fit_34.py and tests/test_evidence_35.py, FROZEN_FIT_34 in tests/test_evidence_35.py),
+# so they are checked out with CRLF to reproduce the frozen bytes exactly.
+forward/capture.py        text eol=crlf
+fit/current.py            text eol=crlf
+frontend/strategy_fit.css text eol=crlf
+frontend/stock_result.js  text eol=crlf

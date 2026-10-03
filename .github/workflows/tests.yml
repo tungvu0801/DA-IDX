@@ -1,0 +1,66 @@
+# Stock Agent CI
+#
+# Runs the pytest suites on a GitHub-hosted Windows runner (the application targets Windows). Nothing in this
+# workflow needs a secret or a .env file: tests/conftest.py blocks every socket connection and replaces the Alpaca
+# read-only adapter and both Stage 4.6B paper-order wires (reads and the order POST) with tripwires, so a CI run
+# cannot reach any broker, paper or live. No repository secret is read or passed to any step.
+#
+# Line endings: .gitattributes checks the tree out exactly as the byte-pinned freeze tests expect, whatever the
+# runner's core.autocrlf setting is (Git for Windows on the runner defaults to core.autocrlf=true).
+name: Stock Agent CI
+
+on:
+  push:
+    branches:
+      - main
+      - stage-46b
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: pytest (windows-latest, Python 3.12)
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      # The runner's stdout is a pipe (cp1252 by default on Windows); the suites print unicode such as masked
+      # account numbers (••••1234), so give the interpreter's std streams UTF-8. Test behaviour is unaffected.
+      PYTHONIOENCODING: utf-8
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install requirements
+        run: python -m pip install -r requirements.txt
+
+      - name: Install development requirements (if present)
+        shell: pwsh
+        run: |
+          if (Test-Path requirements-dev.txt) {
+            python -m pip install -r requirements-dev.txt
+          } else {
+            Write-Host "requirements-dev.txt not present - skipped"
+          }
+
+      - name: Stage 4.6B tests (manual Alpaca PAPER orders - fakes only)
+        run: python -m pytest tests/test_alpaca_orders_46b.py -q
+
+      - name: Full test suite
+        run: python -m pytest tests -q
