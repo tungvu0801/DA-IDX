@@ -105,9 +105,13 @@ def resolve_universe(source: str, ref: Optional[str] = None, symbols: Optional[S
     else:
         from fit import saved_scans as SS
         store = SS.SavedScanStore(path)
-        if store.scan(ref) is None:
+        try:
+            scan = store.scan(ref)
+            snap = store.latest(ref) if scan else None
+        except Exception:  # noqa: BLE001 - no saved-scan tables yet: nothing is saved
+            scan = snap = None
+        if scan is None:
             raise UniverseError("UNKNOWN_REF", "That saved scan does not exist.", 404)
-        snap = store.latest(ref)
         if snap is None:
             raise UniverseError("NO_SCAN_SNAPSHOT", "That saved scan has no stored check yet; run its check first.", 409)
         syms, bad = SC.normalise_symbols(snap["resolved_symbols"], split=False)
