@@ -335,6 +335,51 @@ def test_D_double_click_and_concurrent_confirms_make_one_post(broker):
     assert {r["intent"]["intent_id"] for r in res} == {i["intent_id"]}
 
 
+def _lost_cas(monkeypatch, interloper):
+    """Simulate another process moving the intent right before the write-ahead CAS into SUBMISSION_PENDING: the real
+    transition then returns False. Records every CAS result and refuses any call of _post_once."""
+    real, results, posts = S.OrderStore.transition, [], []
+
+    def hijacked(self, conn, intent_id, expected, new_state, now, kind=None, **fields):
+        if new_state == RU.SUBMISSION_PENDING:
+            interloper(real, self, conn, intent_id, now)
+            results.append(real(self, conn, intent_id, expected, new_state, now, kind=kind, **fields))
+            return results[-1]
+        return real(self, conn, intent_id, expected, new_state, now, kind=kind, **fields)
+    monkeypatch.setattr(S.OrderStore, "transition", hijacked)
+    monkeypatch.setattr(O, "_post_once", lambda *a, **k: posts.append(a) or pytest.fail("_post_once called after a lost CAS"))
+    return results, posts
+
+
+def test_D_confirm_fails_closed_when_the_submission_cas_is_lost(broker, monkeypatch):
+    ready(broker)
+    i = preview()
+    results, posts = _lost_cas(monkeypatch, lambda real, st, c, iid, now: real(
+        st, c, iid, {RU.CONFIRMING}, RU.CONFIRM_REJECTED, now, kind="CONFIRM_REJECTED", error_code="INTERRUPTED",
+        error_text=RU.OUTCOME_TEXT["INTERRUPTED"]))
+    e = err(confirm, i)
+    assert results == [False] and posts == [] and broker.posts == []                       # CAS lost → no _post_once, 0 POSTs
+    assert e.code == "CONFIRM_REJECTED" and e.status == 409 and e.extra["reason"] == "INTERRUPTED"
+    row = S.OrderStore().intent(i["intent_id"])
+    assert row["state"] == "CONFIRM_REJECTED" and row["submit_attempts"] == 0 and row["client_order_id"] == i["client_order_id"]
+    assert [m for m, *_ in broker.requests if m == "POST"] == [] and i["intent_id"] not in O._INFLIGHT
+
+
+def test_D_retry_fails_closed_when_the_submission_cas_is_lost(broker, monkeypatch):
+    ready(broker)
+    i = preview()
+    broker.post_modes = ["connect_timeout"]
+    assert confirm(i)["intent"]["state"] == "SUBMIT_NOT_SENT" and broker.posts == []
+    results, posts = _lost_cas(monkeypatch, lambda real, st, c, iid, now: real(
+        st, c, iid, {RU.SUBMIT_NOT_SENT}, RU.ABANDONED, now, kind="ABANDONED"))
+    e = err(O.retry, i["intent_id"], i["preview_hash"])
+    assert results == [False] and posts == [] and broker.posts == []
+    assert e.code == "NOT_RETRYABLE" and e.status == 409 and e.extra["intent"]["state"] == "ABANDONED"
+    row = S.OrderStore().intent(i["intent_id"])
+    assert row["state"] == "ABANDONED" and row["submit_attempts"] == 1 and row["client_order_id"] == i["client_order_id"]
+    assert i["intent_id"] not in O._INFLIGHT
+
+
 def test_D_retry_from_not_sent_looks_up_first_then_posts_the_same_payload(broker):
     ready(broker)
     i = preview()

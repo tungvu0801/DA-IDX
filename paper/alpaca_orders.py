@@ -560,9 +560,14 @@ def confirm(preview_id: int, preview_hash: str) -> dict:
                 raise OrderError("CONFIRM_REJECTED", fail["text"], reason=fail["code"], intent=_view(st.intent(preview_id)))
             t = _now()
             with st.write() as c:                                             # write-ahead: committed BEFORE the POST
-                st.transition(c, preview_id, {RU.CONFIRMING}, RU.SUBMISSION_PENDING, t, kind="SUBMIT_STARTED",
-                              submit_attempts=row["submit_attempts"] + 1, last_submit_at=_iso(t), lookups_not_found=0,
-                              first_not_found_at=None)
+                armed = st.transition(c, preview_id, {RU.CONFIRMING}, RU.SUBMISSION_PENDING, t, kind="SUBMIT_STARTED",
+                                      submit_attempts=row["submit_attempts"] + 1, last_submit_at=_iso(t), lookups_not_found=0,
+                                      first_not_found_at=None)
+            if not armed:                                                     # the intent left CONFIRMING meanwhile: no POST
+                cur = st.intent(preview_id)
+                raise OrderError("CONFIRM_REJECTED", cur["error_text"] or "The order changed state before it was committed for "
+                                 "submission. Nothing was sent.", reason=cur["error_code"] or "SUBMISSION_NOT_COMMITTED",
+                                 intent=_view(cur))
             res = _post_once(preview_id, row)
             final, outcome = _settle(st, preview_id, res)
             return {"intent": _view(final), "already_confirmed": False, "outcome": outcome}
@@ -611,10 +616,13 @@ def retry(intent_id: int, preview_hash: str) -> dict:
                 raise OrderError("NOT_FOUND_RULE", "Retry needs at least 2 exact lookups finding nothing over at least 30 "
                                  "seconds. Check the order status again later.")
             with st.write() as c:
-                st.transition(c, intent_id, {row["state"]}, RU.SUBMISSION_PENDING, now, kind="RETRY",
-                              submit_attempts=row["submit_attempts"] + 1, last_submit_at=_iso(now), lookups_not_found=0,
-                              first_not_found_at=None, last_lookup_at=_iso(now), error_code=None, error_text=None,
-                              http_status=None, broker_error_code=None)
+                armed = st.transition(c, intent_id, {row["state"]}, RU.SUBMISSION_PENDING, now, kind="RETRY",
+                                      submit_attempts=row["submit_attempts"] + 1, last_submit_at=_iso(now), lookups_not_found=0,
+                                      first_not_found_at=None, last_lookup_at=_iso(now), error_code=None, error_text=None,
+                                      http_status=None, broker_error_code=None)
+            if not armed:                                                     # the order changed state meanwhile: no POST
+                raise OrderError("NOT_RETRYABLE", "The order changed state before it was committed for submission. Nothing was sent.",
+                                 intent=_view(st.intent(intent_id)))
             res = _post_once(intent_id, row)
             final, outcome = _settle(st, intent_id, res)
             return {"intent": _view(final), "linked_without_post": False, "outcome": outcome}
