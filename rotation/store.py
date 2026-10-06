@@ -337,7 +337,10 @@ class RotationStore:
             raise StoreError("NOT_FOUND", "no such run")
         cands, targets, items = self.candidates(run_id), self.targets(run_id), self.items(run_id)
         problems = []
-        if len(cands) != run["n_universe"]:
+        # a run that failed before any symbol was evaluated (DATA_STALE / INPUT_ERROR) records the universe size but has no
+        # candidate rows; every evaluated run must have exactly one candidate row per universe symbol
+        evaluated = bool(cands) or run["status"] not in ("DATA_STALE", "INPUT_ERROR")
+        if evaluated and len(cands) != run["n_universe"]:
             problems.append("CANDIDATE_COUNT")
         if sum(1 for x in cands if x["eligible"]) != run["n_eligible"]:
             problems.append("ELIGIBLE_COUNT")
