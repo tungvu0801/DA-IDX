@@ -640,7 +640,7 @@ def test_41_42_79_refresh_and_view_write_nothing(monkeypatch, creds, lab):
     assert paper_tables(lab.path) == t0 and digest(lab.path) == d0 and json.dumps(P.view(), sort_keys=True) == local0
     with sqlite3.connect(lab.path) as c:
         assert sorted(c.execute("SELECT type, name, sql FROM sqlite_master")) == schema0
-    assert not list((ROOT / "database").glob("*alpaca*")) and not list((ROOT / "database").glob("*broker*"))
+    assert not [p for p in (ROOT / "database").glob("*alpaca*") if p.name != "alpaca_order_migrations.py"] and not list((ROOT / "database").glob("*broker*"))
 
 
 def test_66_fake_credentials_never_appear_anywhere(api, wire, caplog, monkeypatch):

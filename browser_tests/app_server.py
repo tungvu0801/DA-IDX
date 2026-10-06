@@ -8,6 +8,8 @@ browser_tests/app_server.py — the REAL FastAPI app on a fresh scratch database
   * Claude             a deterministic fake for Stage 3.8 explanations only (grounded replies from the payload); any
                        other AI provider request is a violation
   * broker             tests/pf_fixtures fake gateway (read-only GETs, recorded)
+  * Alpaca orders      Stage 4.6B: tests/alpaca_order_fakes.FakeAlpaca behind BOTH 4.6B wires (paper reads + the POST
+                       writer) — an in-memory fake broker, never a socket; every request it receives is recorded
   * Alpaca paper       Stage 4.6A: a fake read-only paper account behind paper.alpaca_view.READER (fake credentials
                        TEST_KEY_123 / TEST_SECRET_456 only); the real TradingClient and the adapter's real network wire
                        are violations, and paper-api.alpaca.markets is blocked by the network guard like every host
@@ -87,6 +89,7 @@ class FakeAI:
         self.notify_calls, self.notify_fail = [], False         # Stage 4.3: the fake desktop notifier (never a real one)
         self.opened, self.registry = [], None                    # Stage 4.4: fake browser opener + in-memory identity
         self.alpaca = None                                       # Stage 4.6A: the fake read-only Alpaca paper account
+        self.orders, self.orders_offset = None, [0.0]            # Stage 4.6B: the fake paper broker + order-clock offset (s)
 
     def reset(self):
         self.delay, self.fail, self.override = {}, False, {"fit": None, "evidence": None}
@@ -245,6 +248,15 @@ def prepare(tmp: Path, guard: Guard):
     ai.alpaca = FakeAlpacaPaper()
     APV.READER = ai.alpaca.reader
     APV._utcnow = lambda: NOW[0]                           # "refreshed at" on the harness clock, like the local simulator
+    from datetime import datetime as _dt, timedelta as _td, timezone as _tz
+    from alpaca_order_fakes import FakeAlpaca              # Stage 4.6B: in-memory fake paper broker (reads + POST /v2/orders)
+    from paper import alpaca_order_reads as APOR
+    from paper import alpaca_order_writer as APOW
+    from paper import alpaca_orders as APO
+    ai.orders = FakeAlpaca()
+    APOR.WIRE = APOW.WIRE = lambda: ai.orders
+    APO._sleep = lambda seconds: None                      # the automatic 2 s lookup delay is not waited for
+    APO._now = lambda: _dt.now(_tz.utc) + _td(seconds=ai.orders_offset[0])   # real time + a test offset (30 s rule)
     return app, wd, ai, broker
 
 

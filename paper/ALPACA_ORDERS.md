@@ -52,6 +52,10 @@ order as SUBMISSION_PENDING, and then sends exactly the stored payload once.
   also needs at least two lookups finding nothing over at least 30 seconds. **Abandon** likewise never hides an existing order.
 - Orders are linked by exact identifiers only (client order id / Alpaca order id) — never by symbol, quantity, time or
   price. The Stage 4.6A read-only pane and the Stage 4.5 simulator are unchanged and never written.
+- Every action that reads orders or can change one first checks that the credentials point to the **linked** account
+  (Check order status and Abandon: one `GET /v2/account`). If `.env` now holds a different paper account, the action stops
+  with ACCOUNT_NOT_LINKED before any order lookup or state change — an order on the linked account is never looked up on,
+  or abandoned because of, another account.
 
 ## Network budget per action
 
@@ -62,5 +66,5 @@ order as SUBMISSION_PENDING, and then sends exactly the stored payload once.
 | Preview | ≤ 5 | ≤ 1 | 0 |
 | Confirm | ≤ 4 + ≤ 1 lookup | 0 | exactly 1 |
 | Retry | 1 lookup + ≤ 4 + ≤ 1 lookup | 0 | ≤ 1 |
-| Abandon | 1 lookup | 0 | 0 |
-| Check order status | ≤ 20 | 0 | 0 |
+| Abandon | 1 account + 1 lookup | 0 | 0 |
+| Check order status | 1 account + ≤ 20 lookups | 0 | 0 |

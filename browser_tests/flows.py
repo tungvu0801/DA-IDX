@@ -1455,6 +1455,204 @@ def alpaca_paper(c: Ctx):
         os.environ.pop(name, None)
 
 
+APO = "AlpacaOrders.state"
+APO_PANE = '#ppf-body [data-ppfp="orders"]'
+APO_JS = r"""(() => {
+  window.__apoText = (sel) => { const e = document.querySelector('#ppf-body [data-ppfp="orders"] ' + (sel || '.apo')); return e ? e.innerText : null; };
+  window.__apoBtn = (a) => document.querySelector('#ppf-body [data-ppfp="orders"] [data-apo="' + a + '"]');
+  window.__apoSet = (sym, side, qty) => { const r = document.querySelector('#ppf-body [data-ppfp="orders"]');
+    r.querySelector('[data-apo-f="symbol"]').value = sym; r.querySelector('[data-apo-f="side"]').value = side; r.querySelector('[data-apo-f="quantity"]').value = qty; return true; };
+  window.__apoPost = (path, body) => fetch('/api/alpaca-paper-orders' + path, { method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Stock-Agent-Intent': 'paper-order' }, body: JSON.stringify(body) })
+    .then(async (r) => [r.status, await r.json()]);
+})()"""
+
+
+def _apo_sync(c: Ctx, minutes_to_close: float = 360, is_open: bool = True):
+    from datetime import timedelta
+    from paper import alpaca_orders as APOM
+    fk = c.ai.orders
+    fk.now = APOM._now()
+    fk.is_open, fk.next_close, fk.next_open = is_open, fk.now + timedelta(minutes=minutes_to_close), fk.now + timedelta(hours=18)
+
+
+def _apo_act(c: Ctx, click_js: str, timeout=30):
+    """One pane action: its POST + the reload (2 GETs) — returns the page requests it made."""
+    n0, r0 = c.n(), c.js(f"{APO}.requests")
+    c.js(click_js)
+    c.wait(f"!{APO}.busy && {APO}.requests >= {r0} + 3", timeout, "manual order action")
+    c.idle()
+    return c.reqs(n0)
+
+
+def _apo_preview(c: Ctx, sym: str, side: str, qty: int):
+    c.js(f"__apoSet({json.dumps(sym)}, {json.dumps(side)}, {json.dumps(str(qty))})")
+    return _apo_act(c, "__apoBtn('preview').click()")
+
+
+def _paper_digest(path):
+    import hashlib
+    import sqlite3
+    con = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)
+    h = hashlib.sha256()
+    for t in ("paper_accounts", "paper_orders", "paper_fills", "paper_lots", "paper_lot_closures"):
+        for row in con.execute(f'SELECT rowid, * FROM "{t}" ORDER BY rowid'):
+            h.update(repr(row).encode())
+    con.close()
+    return h.hexdigest()
+
+
+def alpaca_orders(c: Ctx):
+    """Stage 4.6B: manual Alpaca PAPER orders — preview, explicit click Confirm, exact reconciliation (fake broker only)."""
+    import os
+    from paper import alpaca_order_reads as APOR
+    from alpaca_order_fakes import OTHER_ACCOUNT_ID
+    fk = c.ai.orders
+    a0, b0 = len(c.ai.calls), len(getattr(c.broker, "requests", []))
+    c.r.eq("no 4.6B broker request by any earlier flow (startup, dashboard, Strategy Lab, simulator, 4.6A)", [fk.requests, fk.posts], [[], []])
+    os.environ[APOR.KEY_ENV], os.environ[APOR.SECRET_ENV] = "TEST_KEY_123", "TEST_SECRET_456"
+    local0, view46a0, paper0 = c.http("GET", "/api/paper-portfolio"), c.http("GET", "/api/alpaca-paper/view"), _paper_digest(c.world.db)
+    c.js(APO_JS)
+    n0 = c.n()
+    c.open_lab("paper")
+    c.js("__click('#ppf-body [data-ppf-view=\"orders\"]')")
+    c.wait(f"!!window.AlpacaOrders && {APO}.linked === false", 30, "manual orders pane")
+    c.idle()
+    req = [u for u in c.reqs(n0) if "alpaca-paper-orders" in u]
+    c.r.check("opening Manual Orders: settings + list only, 0 broker requests",
+              req == ["GET /api/alpaca-paper-orders/settings", "GET /api/alpaca-paper-orders"] and fk.requests == [], req)
+    txt = c.js("__apoText()") or ""
+    c.r.check("not linked: persistent PAPER banner, Link button, no order form, no form element anywhere",
+              "PAPER ACCOUNT — simulated trading only · orders go to your Alpaca PAPER account" in txt and "Link this paper account" in txt
+              and not c.js(f"!!document.querySelector('{APO_PANE} [data-apo-f=\"symbol\"]')")
+              and c.js(f"document.querySelectorAll('{APO_PANE} form').length") == 0, txt[:300])
+    c.shot("alpaca_orders_off", f"{APO_PANE} .apo")
+    # link (2 GETs) · no_shorting OFF → Turn on refused · ON → enabled
+    fk.config["no_shorting"] = False
+    _apo_act(c, "__apoBtn('link').click()")
+    c.r.eq("Link: linked, still OFF, exactly the 2 read-only GETs", [c.js(f"{APO}.linked"), c.js(f"{APO}.enabled"),
+           [p for m, p, _ in fk.requests]], [True, False, ["/v2/account", "/v2/account/configurations"]])
+    _apo_act(c, "__apoBtn('enable').click()")
+    c.r.check("no_shorting OFF: Turn on refused; Stock Agent never changes the setting", c.js(f"{APO}.enabled") is False and
+              "Stock Agent never changes it" in (c.js(f"{APO}.notice") or "") and fk.posts == [] and {m for m, *_ in fk.requests} == {"GET"})
+    fk.config["no_shorting"] = True
+    _apo_act(c, "__apoBtn('enable').click()")
+    c.r.eq("Turn on: manual paper orders ON", c.js(f"{APO}.enabled"), True)
+    # market closed: preview allowed; Confirm disabled; the server refuses too
+    _apo_sync(c, is_open=False)
+    _apo_preview(c, "KO", "BUY", 2)
+    cur = c.js(f"{APO}.current") or {}
+    c.r.check("closed: preview shown, Confirm disabled with the regular-hours text", cur.get("state") == "PREVIEWED" and not cur.get("ready")
+              and c.js("__apoBtn('confirm').disabled") and "Market closed — confirmation is available during regular hours" in (c.js("__apoText('.apo-preview')") or ""), cur)
+    hsh = c.http("GET", "/api/alpaca-paper-orders")["intents"][0]["preview_hash"]
+    st, body = c.js(f"__apoPost('/confirm', {{preview_id: {cur['id']}, preview_hash: {json.dumps(hsh)}, confirm: true}})")
+    c.r.check("closed: the server rejects a forced confirm (fresh Alpaca clock), 0 POSTs", st == 409 and body.get("reason") == "MARKET_CLOSED" and fk.posts == [], body)
+    # near close (4 minutes): same, with the near-close text
+    _apo_sync(c, minutes_to_close=4)
+    _apo_preview(c, "KO", "BUY", 2)
+    cur = c.js(f"{APO}.current") or {}
+    c.r.check("near close: Confirm disabled, 'within 5 minutes of the market close'", not cur.get("ready") and
+              "Confirmation is disabled within 5 minutes of the market close" in (c.js("__apoText('.apo-preview')") or ""))
+    hsh = c.http("GET", "/api/alpaca-paper-orders")["intents"][0]["preview_hash"]
+    st, body = c.js(f"__apoPost('/confirm', {{preview_id: {cur['id']}, preview_hash: {json.dumps(hsh)}, confirm: true}})")
+    c.r.check("near close: the server rejects a forced confirm, 0 POSTs", st == 409 and body.get("reason") == "NEAR_CLOSE" and fk.posts == [], body)
+    # open: preview → Enter never confirms → one click = one POST
+    _apo_sync(c)
+    _apo_preview(c, "KO", "BUY", 2)
+    pv = c.js("__apoText('.apo-preview')") or ""
+    c.r.check("preview: PAPER label, MARKET · DAY, previous close 'not a quote, not the fill price', 5% cash guard wording, client order id",
+              all(s in pv for s in ("BUY 2 KO", "MARKET · DAY", "not a quote, not the fill price", "estimate only", "Stock Agent cash guard: previous close + 5%",
+                                    "Alpaca decides buying power", "sa46b-")) and c.js(f"{APO}.current.ready"), pv[:500])
+    c.r.eq("Confirm button names the exact order", c.js("__apoBtn('confirm').innerText.trim()"), "Confirm Paper Order: BUY 2 KO")
+    c.shot("alpaca_orders_preview", f"{APO_PANE} .apo-preview")
+    r0 = c.js(f"{APO}.requests")
+    c.js(f"(() => {{ const q = document.querySelector('{APO_PANE} [data-apo-f=\"quantity\"]'); q.focus(); "
+         "for (const t of ['keydown', 'keypress', 'keyup']) q.dispatchEvent(new KeyboardEvent(t, { key: 'Enter', code: 'Enter', bubbles: true })); return true; })()")
+    time.sleep(0.3)
+    c.r.check("Enter never confirms (no request, no POST, no form)", c.js(f"{APO}.requests") == r0 and fk.posts == [])
+    req = _apo_act(c, "__apoBtn('confirm').click()")
+    c.r.check("one click on Confirm: exactly one confirm request and one broker POST of the stored payload",
+              [u.split(" ")[1] for u in req if u.startswith("POST")] == ["/api/alpaca-paper-orders/confirm"] and len(fk.posts) == 1
+              and c.js(f"{APO}.current.state") == "SUBMITTED", req)
+    c.shot("alpaca_orders_confirmed", f"{APO_PANE} .apo")
+    # double click → one POST
+    _apo_preview(c, "KO", "BUY", 1)
+    n1 = c.n()
+    c.js("__apoBtn('confirm').click(); __apoBtn('confirm').click()")
+    c.wait(f"!{APO}.busy && {APO}.current.state === 'SUBMITTED'", 30, "double click")
+    c.idle()
+    c.r.check("double click: one confirm request, one broker POST", [u for u in c.reqs(n1) if u.startswith("POST")] == ["POST /api/alpaca-paper-orders/confirm"]
+              and len(fk.posts) == 2)
+    # timeout after Alpaca recorded the order → RECONCILIATION_REQUIRED → exact status check links it
+    fk.post_modes, fk.lookup_lag = ["timeout_after_record"], 1
+    _apo_preview(c, "MU", "BUY", 1)
+    _apo_act(c, "__apoBtn('confirm').click()")
+    c.r.check("timeout: RECONCILIATION REQUIRED with Check status / Retry (same id) / Abandon", c.js(f"{APO}.current.state") == "RECONCILIATION_REQUIRED"
+              and all(s in (c.js("__apoText('.apo-preview')") or "") for s in ("Check order status", "Retry submission (same client order id)", "Abandon")))
+    c.shot("alpaca_orders_reconcile", f"{APO_PANE} .apo-preview")
+    _apo_act(c, "__apoBtn('status').click()")
+    c.r.check("Check order status: the exact lookup links it (SUBMITTED), no new POST",
+              ["MU", "SUBMITTED"] in c.js(f"{APO}.intents") and len(fk.posts) == 3)
+    # 422 duplicate on retry → immediate exact lookup → linked; still one order at the broker
+    fk.post_modes, fk.lookup_lag = ["timeout_after_record"], 1
+    _apo_preview(c, "AMD", "BUY", 1)
+    _apo_act(c, "__apoBtn('confirm').click()")
+    coid = c.js(f"{APO}.current.coid")
+    c.ai.orders_offset[0] += 31
+    _apo_sync(c)
+    fk.lookup_lag = 1
+    _apo_act(c, "__apoBtn('retry').click()")
+    c.r.check("retry after 30 s: lookup first, same client order id, 422 duplicate → linked; one order at the broker",
+              c.js(f"{APO}.current.state") == "SUBMITTED" and sum(1 for o in fk.orders.values() if o["client_order_id"] == coid) == 1
+              and [json.loads(b)["client_order_id"] for b in fk.posts].count(coid) == 2 and len(fk.posts) == 5)
+    # SELL without an Alpaca position: rule ✗, Confirm disabled, the server refuses
+    _apo_preview(c, "CLS", "SELL", 4)
+    cur = c.js(f"{APO}.current") or {}
+    c.r.check("SELL without an Alpaca position: V9 ✗, Confirm disabled; local simulator shares shown as information only",
+              cur.get("confirmable") is False and c.js("__apoBtn('confirm').disabled") and "local simulator 4" in (c.js("__apoText('.apo-preview')") or ""), cur)
+    hsh = c.http("GET", "/api/alpaca-paper-orders")["intents"][0]["preview_hash"]
+    st, body = c.js(f"__apoPost('/confirm', {{preview_id: {cur['id']}, preview_hash: {json.dumps(hsh)}, confirm: true}})")
+    c.r.check("the server refuses a non-confirmable preview, 0 POSTs", st == 409 and body.get("status") == "PREVIEW_NOT_CONFIRMABLE" and len(fk.posts) == 5)
+    # a definitive Alpaca rejection
+    fk.post_modes = ['http:403:{"code": 40310000, "message": "insufficient buying power"}']
+    _apo_preview(c, "KO", "BUY", 3)
+    _apo_act(c, "__apoBtn('confirm').click()")
+    c.r.check("403 insufficient buying power: Rejected by Alpaca with the fixed text (Alpaca decides buying power)",
+              c.js(f"{APO}.current.state") == "BROKER_REJECTED" and "Alpaca decides buying power" in (c.js("__apoText('.apo-preview')") or "") and len(fk.posts) == 6)
+    c.shot("alpaca_orders_rejected", f"{APO_PANE} .apo-preview")
+    # another account in .env: preview flags it; explicit Relink only (manual orders go OFF)
+    fk.account.update(id=OTHER_ACCOUNT_ID, account_number="PA3OTHER1234")
+    _apo_preview(c, "KO", "BUY", 1)
+    c.r.check("a different paper account: V8 ✗ (not the linked account), Confirm disabled",
+              c.js(f"{APO}.current.confirmable") is False and "not the linked account" in (c.js("__apoText('.apo-preview')") or ""))
+    c.js("__apoBtn('relink-open').click()")
+    time.sleep(0.2)
+    _apo_act(c, "__apoBtn('relink').click()")
+    c.r.check("explicit Relink: the new account is linked and manual orders are OFF again", c.js(f"{APO}.linked") and c.js(f"{APO}.enabled") is False
+              and "••••1234" in (c.js("__apoText('.apo-banner')") or ""))
+    # layout
+    c.b.viewport(1400, 900)
+    time.sleep(0.3)
+    c.no_overflow("manual paper orders")
+    clipped = c.js(f"[...document.querySelectorAll('{APO_PANE} .cc-card')].filter((e) => e.offsetParent && e.scrollWidth > e.clientWidth + 2).map((e) => e.className).slice(0, 5)")
+    c.r.eq("1400: no clipped manual order cards", clipped, [])
+    c.shot("alpaca_orders_1400", f"{APO_PANE} .apo")
+    c.b.viewport(1920, 1080)
+    words = c.js(f"document.querySelector('{APO_PANE}').innerText") or ""
+    c.r.check("no cancel / replace / close controls and no guarantee wording", not c.js(f"[...document.querySelectorAll('{APO_PANE} button')].some((b) => /cancel|replace|close position|liquidate/i.test(b.innerText))")
+              and not re.search(r"(?i)guarantee", words))
+    c.r.check("broker requests: GET and POST /v2/orders only; 6 POSTs, all from Confirm / Retry",
+              {m for m, *_ in fk.requests} <= {"GET", "POST"} and [p for m, p, _ in fk.requests if m == "POST"] == ["/v2/orders"] * 6)
+    untimed = lambda v: {k: x for k, x in v.items() if k != "timings"}  # noqa: E731 - per-request timings vary by design
+    c.r.check("the local simulator payload is unchanged", c.http("GET", "/api/paper-portfolio") == local0)
+    c.r.check("the five Stage 4.5 paper_* tables are unchanged", _paper_digest(c.world.db) == paper0)
+    c.r.check("the Stage 4.6A read-only view is unchanged (timings aside)", untimed(c.http("GET", "/api/alpaca-paper/view")) == untimed(view46a0))
+    c.js("__click('#ppf-body [data-ppf-view=\"local\"]')")
+    c.r.eq("0 Claude calls and 0 Robinhood gateway requests", [c.ai.calls[a0:], getattr(c.broker, "requests", [])[b0:]], [[], []])
+    for name in (APOR.KEY_ENV, APOR.SECRET_ENV):
+        os.environ.pop(name, None)
+
+
 FLOWS = (dashboard, strategy_lab_builder, backtest_stored, forward_journal, strategy_fit, evidence, ai_strategy_fit,
          ai_evidence, history, scanner, small_screens, automation, saved_scans, daily_brief, brief_delivery, notification_click,
-         paper_portfolio, alpaca_paper)
+         paper_portfolio, alpaca_paper, alpaca_orders)

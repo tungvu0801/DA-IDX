@@ -68,8 +68,8 @@ def test_harness_refuses_the_real_or_an_existing_database(tmp_path):
 
 def test_required_flows_screen_sizes_and_stable_screenshot_names():
     names = [f.__name__ for f in F.FLOWS]
-    assert names[0] == "dashboard" and names[-7:] == ["automation", "saved_scans", "daily_brief", "brief_delivery",
-                                                      "notification_click", "paper_portfolio", "alpaca_paper"]
+    assert names[0] == "dashboard" and names[-8:] == ["automation", "saved_scans", "daily_brief", "brief_delivery",
+                                                      "notification_click", "paper_portfolio", "alpaca_paper", "alpaca_orders"]
     # (4.5 moves the clock; 4.6A builds on the 4.5 flow's local simulator and moves it once more: last)
     # automation captures + archives; saved_scans (4.1) moves the clock forward; daily_brief (4.2) reads everything stored
     # so far; brief_delivery (4.3) stores new sessions after it (clock moves again), so it runs last
