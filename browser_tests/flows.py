@@ -1653,6 +1653,159 @@ def alpaca_orders(c: Ctx):
         os.environ.pop(name, None)
 
 
+PRT = "PortfolioRotation.state"
+PRT_JS = r"""(() => {
+  window.__prtBtn = (a, sym) => document.querySelector('#prt-body [data-prt-act="' + a + '"]' + (sym ? '[data-sym="' + sym + '"]' : ''));
+  window.__prtSet = (sel, v) => { const e = document.querySelector('#prt-body [data-prt="' + sel + '"]'); e.value = v;
+    e.dispatchEvent(new Event('change', { bubbles: true })); return true; };
+  window.__prtText = (sel) => { const e = document.querySelector('#prt-body ' + (sel || '.prt')); return e ? e.innerText : null; };
+  window.__prtHandoffs = () => [...document.querySelectorAll('#prt-body [data-prt-act="handoff"]')].map((b) => ({
+    sym: b.dataset.sym, side: b.dataset.side, action: b.dataset.action, qty: Number(b.dataset.quantity), disabled: b.disabled }));
+  window.__prtDisabled = () => [...document.querySelectorAll('#prt-body .prt-table td button[disabled]')].map((b) => b.innerText.trim());
+  window.__apoInputs = () => { const r = document.querySelector('#ppf-body [data-ppfp="orders"]'); if (!r) return null;
+    const q = (k) => r.querySelector('[data-apo-f="' + k + '"]'); return q('symbol') ? { symbol: q('symbol').value, side: q('side').value, quantity: q('quantity').value } : null; };
+})()"""
+
+
+def _prt_act(c: Ctx, click_js: str, timeout=30):
+    """One rotation pane action: its POST (and any reload) — waits until the pane is idle again."""
+    n0, r0 = c.n(), c.js(f"{PRT}.requests")
+    c.js(click_js)
+    c.wait(f"!{PRT}.busy && {PRT}.requests > {r0}", timeout, "rotation action")
+    c.idle()
+    return c.reqs(n0)
+
+
+def _prt_run(c: Ctx):
+    req = _prt_act(c, "__prtBtn('run').click()", 60)
+    c.wait(f"!{PRT}.busy && {PRT}.run && ({PRT}.rows > 0 || {PRT}.run.status !== 'VALID')", 60, "rotation run")
+    c.idle()
+    return req
+
+
+def portfolio_rotation(c: Ctx):
+    """Stage 4.7 Phase 5: the Portfolio Rotation workspace and the CLOSED handoff rule — only an ALPACA PAPER run's eligible
+    items prefill the existing Stage 4.6B Manual Orders form (the user still clicks Preview and Confirm there); Robinhood and
+    local-simulator runs are display only. Runs with --only portfolio_rotation (it links the fake paper account)."""
+    import os
+    from paper import alpaca_order_reads as APOR
+    fk, b0 = c.ai.orders, len(getattr(c.broker, "requests", []))
+    os.environ[APOR.KEY_ENV], os.environ[APOR.SECRET_ENV] = "TEST_KEY_123", "TEST_SECRET_456"
+    c.js(APO_JS)
+    c.js(PRT_JS)
+    # the frozen Stage 4.6B pane, through its own API against the fake paper broker: link + turn on (4 GETs, 0 POSTs)
+    st1, _ = c.js("__apoPost('/settings/link-account', {confirm: true})")
+    st2, _ = c.js("__apoPost('/settings/enable', {confirm: true})")
+    c.r.check("Stage 4.6B linked and turned on through its own API (fake broker, GETs only, 0 POSTs)",
+              st1 == 200 and st2 == 200 and fk.posts == [] and {m for m, *_ in fk.requests} == {"GET"})
+    # the Stage 4.6A view (fake reader): the ALPACA_PAPER_VIEW snapshot source
+    c.http("POST", "/api/alpaca-paper/refresh", {})
+    cfg = c.http("POST", "/api/portfolio-rotation/configs", {
+        "name": "harness", "weights": {"momentum": "0.30", "trend": "0.25", "relative_strength": "0.25", "volatility": "0.10", "drawdown": "0", "liquidity": "0.10"},
+        "portfolio_size": 2, "exit_rank": 2, "cash_buffer_pct": "0.05", "rebalance_threshold": "0.01", "max_turnover_per_rotation": "1.00",
+        "max_position_weight": "0.50", "min_position_weight": "0.10", "min_price": "5.00", "min_avg_dollar_volume": "1000000.00",
+        "min_history_sessions": 252, "max_snapshot_age_min": 10_000_000, "excluded_symbols": []})
+    c.r.check("rotation configuration version created", bool(cfg.get("config_id")) and cfg.get("version") == 1, cfg)
+    n0 = c.n()
+    c.open_lab("rotation")
+    c.wait(f"!!window.PortfolioRotation && {PRT}.requests >= 2 && !{PRT}.busy", 30, "rotation pane")
+    c.idle()
+    req = [u for u in c.reqs(n0) if "portfolio-rotation" in u]
+    c.r.check("opening Portfolio Rotation: config + versions only, 0 broker requests",
+              req == ["GET /api/portfolio-rotation/config", "GET /api/portfolio-rotation/configs"] and len(c.broker.requests) == b0 and fk.posts == [], req)
+    txt = c.js("__prtText()") or ""
+    c.r.check("banner and no handoff control before any run", "PROPOSAL ONLY — NO ORDERS ARE SENT" in txt and c.js("__prtHandoffs()") == [])
+    # ---- A · ALPACA PAPER: snapshot, run, enabled handoff, BUY / SELL mapping, prefill of the existing 4.6B form -----------------
+    c.js("document.querySelector('#prt-body [data-prt-act=\"source\"][data-src=\"ALPACA_PAPER_VIEW\"]').click()")
+    _prt_act(c, "__prtBtn('snapshot').click()")
+    c.r.check("Alpaca snapshot read from the Stage 4.6A view (0 broker requests): MU 5, AMD 10, KO 8",
+              c.js(f"{PRT}.snapshot") == {"fresh": True, "n": 3} and len(c.broker.requests) == b0 and "ALPACA PAPER" in (c.js("__prtText()") or ""))
+    c.js(f"__prtSet('config', {json.dumps(cfg['config_id'])})")
+    c.js("__prtSet('universe', 'CUSTOM')")
+    c.js("__prtSet('custom', 'AMD, MU, KO, CLS')")
+    c.r.eq("CUSTOM universe shows its exact symbol count before the run", "4 symbols" in (c.js("__prtText('.prt-controls')") or ""), True)
+    _prt_run(c)
+    run = c.js(f"{PRT}.run") or {}
+    c.r.check("Alpaca run VALID with handoff mode ALPACA_PAPER_PREFILL", run.get("status") == "VALID" and run.get("handoff_mode") == "ALPACA_PAPER_PREFILL"
+              and run.get("source") == "ALPACA_PAPER_VIEW", run)
+    hs = c.js("__prtHandoffs()") or []
+    rows = c.js("[...document.querySelectorAll('#prt-body [data-prt-row]')].map((r) => [r.dataset.prtRow, r.dataset.prtAction])") or []
+    actionable = [s for s, a in rows if a in ("ADD", "INCREASE", "DECREASE", "EXIT")]
+    c.r.check("handoff controls enabled exactly for actionable items; BUY for ADD/INCREASE, SELL for DECREASE/EXIT; none for HOLD/NONE",
+              bool(hs) and all(not h["disabled"] and h["qty"] >= 1 for h in hs) and sorted(h["sym"] for h in hs) == sorted(actionable)
+              and all((h["side"] == "BUY") == (h["action"] in ("ADD", "INCREASE")) and (h["side"] == "SELL") == (h["action"] in ("DECREASE", "EXIT")) for h in hs), (hs, rows))
+    c.r.check("a SELL candidate and a BUY candidate both exist (EXIT/DECREASE → SELL, ADD/INCREASE → BUY)",
+              {h["side"] for h in hs} == {"BUY", "SELL"}, hs)
+    c.shot("portfolio_rotation_alpaca", "#prt-body .prt")
+    first = hs[0]
+    n1 = c.n()
+    c.js(f"__prtBtn('handoff', {json.dumps(first['sym'])}).click()")
+    c.wait(f"{PRT}.lastHandoff && {PRT}.lastHandoff.placed", 30, "paper draft placed")
+    c.idle()
+    draft = c.js("__apoInputs()")
+    c.r.check("Prepare Paper Order fills the EXISTING Stage 4.6B form with the server draft (symbol, side, whole shares)",
+              draft == {"symbol": first["sym"], "side": first["side"], "quantity": str(first["qty"])}, (draft, first))
+    since = c.reqs(n1)
+    c.r.check("the click made NO preview / confirm request and NO broker POST — the user must still Preview, then Confirm",
+              not any("/api/alpaca-paper-orders/preview" in u or "/api/alpaca-paper-orders/confirm" in u for u in since) and fk.posts == []
+              and {m for m, *_ in fk.requests} == {"GET"}, since)
+    c.r.check("the Manual Orders view is showing with its own Preview button still untouched",
+              c.js("!!document.querySelector('#ppf-body [data-apo=\"preview\"]')") and c.js("AlpacaOrders.state.current") is None)
+    c.shot("portfolio_rotation_handoff", '#ppf-body [data-ppfp="orders"]')
+    # ---- G · a new source clears the earlier proposal and its handoff controls -----------------------------------------------------
+    c.open_lab("rotation")
+    c.js("document.querySelector('#prt-body [data-prt-act=\"source\"][data-src=\"ROBINHOOD_READ_ONLY\"]').click()")
+    c.r.check("switching to Robinhood clears the Alpaca proposal: no run, no handoff controls remain",
+              c.js(f"{PRT}.run") is None and c.js("__prtHandoffs()") == [] and "ROBINHOOD — READ ONLY" in (c.js("__prtText()") or ""))
+    # ---- B · ROBINHOOD READ ONLY: snapshot (2 fake gateway GETs), run, display only, DOM injection cannot invoke preview --------
+    import pf_fixtures as PF                                   # fake Robinhood holdings inside the harness market (restored below)
+    saved = dict(c.broker.overrides)
+    c.broker.overrides["/portfolio"] = (200, PF.env({**PF.PORTFOLIO, "cash": "5000.00"}))
+    c.broker.overrides["/positions"] = (200, PF.env({"account": PF.POSITIONS["account"],
+                                                      "positions": [PF.position("AMD", "3.000000", "90"), PF.position("MU", "1.500000", "40")]}))
+    _prt_act(c, "__prtBtn('snapshot').click()")
+    gw = [r["path"] for r in c.broker.requests[b0:]]
+    c.r.check("Robinhood snapshot: exactly GET /portfolio + GET /positions on the fake gateway, nothing else",
+              gw == ["/portfolio", "/positions"] and c.js(f"{PRT}.snapshot.fresh") is True, gw)
+    _prt_run(c)
+    run = c.js(f"{PRT}.run") or {}
+    txt = c.js("__prtText('.prt-table')") or ""
+    c.r.check("Robinhood run renders items with handoff DISPLAY_ONLY, disabled 'Paper handoff unavailable' and the read-only explanation",
+              run.get("handoff_mode") == "DISPLAY_ONLY" and c.js("__prtHandoffs()") == [] and c.js(f"{PRT}.eligible") == []
+              and "Paper handoff unavailable" in c.js("__prtDisabled()") and "Robinhood portfolio is read-only. No quantity is transferred to Alpaca." in txt
+              and "ROBINHOOD — READ ONLY" in txt, (run, txt[:300]))
+    n2 = c.n()
+    c.js("(() => { const t = document.querySelector('#prt-body .prt-table'); const b = document.createElement('button'); b.setAttribute('data-prt-act', 'handoff');"
+         " b.setAttribute('data-sym', 'AMD'); b.setAttribute('data-side', 'BUY'); b.setAttribute('data-quantity', '5'); t.appendChild(b); b.click(); return true; })()")
+    time.sleep(0.3)
+    c.r.check("an injected handoff button on a Robinhood run is refused: no draft, no preview request, no 4.6B form change",
+              (c.js(f"{PRT}.lastHandoff") or {}).get("symbol") == first["sym"] and "read-only" in (c.js(f"{PRT}.notice") or "")
+              and not any("alpaca-paper-orders" in u for u in c.reqs(n2)) and fk.posts == [])
+    c.shot("portfolio_rotation_robinhood", "#prt-body .prt-table")
+    c.broker.overrides.clear()
+    c.broker.overrides.update(saved)
+    # ---- C · LOCAL SIMULATOR: display only ---------------------------------------------------------------------------------------
+    acct = c.http("POST", "/api/paper-portfolio/account", {"starting_cash": "10000.00", "slippage_bps": "0", "commission_per_order": "0"})
+    c.r.check("a local paper account exists for the simulator source", bool(acct.get("account") or acct.get("account_id") or acct.get("status")), list(acct)[:5])
+    c.js("document.querySelector('#prt-body [data-prt-act=\"source\"][data-src=\"LOCAL_SIMULATOR\"]').click()")
+    _prt_act(c, "__prtBtn('snapshot').click()")
+    _prt_run(c)
+    run = c.js(f"{PRT}.run") or {}
+    txt = c.js("__prtText('.prt-table')") or ""
+    c.r.check("Local simulator run: display only — disabled 'Display only' controls, explanation, no preview request",
+              run.get("source") == "LOCAL_SIMULATOR" and run.get("handoff_mode") == "DISPLAY_ONLY" and c.js("__prtHandoffs()") == []
+              and "Display only" in c.js("__prtDisabled()") and "Local simulator results cannot create a broker draft." in txt, (run, txt[:300]))
+    # ---- totals ---------------------------------------------------------------------------------------------------------------------
+    all_req = c.reqs(n0)
+    c.r.check("whole flow: 0 preview / confirm requests, 0 fake-broker POSTs, fake broker saw GETs only, gateway saw GETs only",
+              not any("/preview" in u or "/confirm" in u for u in all_req if "alpaca-paper-orders" in u) and fk.posts == []
+              and {m for m, *_ in fk.requests} == {"GET"} and all(r["path"] in ("/portfolio", "/positions") for r in c.broker.requests[b0:]))
+    c.r.eq("0 Claude calls", c.ai.calls, [])
+    for name in (APOR.KEY_ENV, APOR.SECRET_ENV):
+        os.environ.pop(name, None)
+
+
 FLOWS = (dashboard, strategy_lab_builder, backtest_stored, forward_journal, strategy_fit, evidence, ai_strategy_fit,
          ai_evidence, history, scanner, small_screens, automation, saved_scans, daily_brief, brief_delivery, notification_click,
          paper_portfolio, alpaca_paper, alpaca_orders)
+EXTRA_FLOWS = (portfolio_rotation,)          # Stage 4.7: run with --only portfolio_rotation (it links the fake paper account)

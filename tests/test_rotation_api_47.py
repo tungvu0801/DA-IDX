@@ -83,9 +83,11 @@ def test_1_2_get_config_and_configs_make_no_requests(api):
     r = api.get(f"{BASE}/config")
     assert r.status_code == 200
     b = r.json()
-    assert b["benchmark"] == "SPY" and b["max_symbols"] == 100 and b["handoff"] == "DISPLAY_ONLY" and b["label"].startswith("PORTFOLIO ROTATION")
+    assert b["benchmark"] == "SPY" and b["max_symbols"] == 100 and b["label"].startswith("PORTFOLIO ROTATION")
     assert [s["id"] for s in b["portfolio_sources"]] == ["ALPACA_PAPER_VIEW", "ROBINHOOD_READ_ONLY", "LOCAL_SIMULATOR"]
-    assert all(s["handoff"] == "DISPLAY_ONLY" for s in b["portfolio_sources"]) and b["universe_sources"] == ["WATCHLIST", "SAVED_SCAN", "SAVED_UNIVERSE", "CUSTOM"]
+    assert {s["id"]: s["handoff"] for s in b["portfolio_sources"]} == b["handoff_modes"] == {"ALPACA_PAPER_VIEW": "ALPACA_PAPER_PREFILL",
+                                                                                              "ROBINHOOD_READ_ONLY": "DISPLAY_ONLY", "LOCAL_SIMULATOR": "DISPLAY_ONLY"}
+    assert b["universe_sources"] == ["WATCHLIST", "SAVED_SCAN", "SAVED_UNIVERSE", "CUSTOM"]
     assert b["snapshots"] == {"ALPACA_PAPER_VIEW": None, "ROBINHOOD_READ_ONLY": None, "LOCAL_SIMULATOR": None} and "saved_scans" in b
     assert api.get(f"{BASE}/configs").json() == {"configs": []}
     assert api.provider.calls == [] and api.lab.market.calls == [] and api.hits == []           # 0 gateway, 0 market data, 0 AI
@@ -197,7 +199,7 @@ def test_11_12_valid_run_makes_zero_provider_calls(api):
     r = run(api, c)
     assert r.status_code == 200, r.text
     out = r.json()["run"]
-    assert out["status"] == "VALID" and out["data_session"] == P3.SESSION and out["benchmark"] == "SPY" and out["handoff"] == "DISPLAY_ONLY"
+    assert out["status"] == "VALID" and out["data_session"] == P3.SESSION and out["benchmark"] == "SPY" and out["handoff_mode"] == "DISPLAY_ONLY"
     assert out["reference_equity"] == "2125.00" and out["current_cash_weight"] and out["target_cash_weight"] == "0.050000"
     assert out["n_universe"] == 6 and out["n_eligible"] == 6 and out["n_selected"] == 3 and out["turnover"] and out["market_data_requests"] == 1
     assert re.fullmatch(r"[0-9a-f]{64}", out["input_hash"]) and re.fullmatch(r"[0-9a-f]{64}", out["proposal_hash"]) and re.fullmatch(r"[0-9a-f]{32}", out["run_id"])
@@ -216,7 +218,7 @@ def test_13_17_runs_detail_candidates_targets_rebalance(api):
     c = cfg(api)
     rid = run(api, c).json()["run"]["run_id"]
     runs = api.get(f"{BASE}/runs").json()["runs"]
-    assert len(runs) == 1 and runs[0]["run_id"] == rid and runs[0]["handoff"] == "DISPLAY_ONLY"
+    assert len(runs) == 1 and runs[0]["run_id"] == rid and runs[0]["handoff_mode"] == "DISPLAY_ONLY"
     d = api.get(f"{BASE}/runs/{rid}").json()
     assert d["run"]["run_id"] == rid and d["integrity"]["ok"] is True and d["universe"] == sorted(P3.SYMS) and d["positions"][0]["symbol"] == "AMD"
     cands = api.get(f"{BASE}/runs/{rid}/candidates").json()["candidates"]
@@ -225,8 +227,9 @@ def test_13_17_runs_detail_candidates_targets_rebalance(api):
     t = api.get(f"{BASE}/runs/{rid}/targets").json()["targets"]
     assert len(t) == 3 and t[0]["rank"] == 1 and isinstance(t[0]["flags"], list)
     rb = api.get(f"{BASE}/runs/{rid}/rebalance").json()
-    assert rb["handoff"] == "DISPLAY_ONLY" and rb["source_mismatch_note"] and all(i["action"] in ("ADD", "INCREASE", "DECREASE", "EXIT", "HOLD", "NONE") for i in rb["items"])
-    assert all(i["handoff"] == "DISPLAY_ONLY" for i in rb["items"]) and {i["symbol"] for i in rb["items"]} >= {"AMD", "MU"}
+    assert rb["handoff_mode"] == "DISPLAY_ONLY" and rb["source_mismatch_note"] and all(i["action"] in ("ADD", "INCREASE", "DECREASE", "EXIT", "HOLD", "NONE") for i in rb["items"])
+    assert all(i["handoff"]["mode"] == "DISPLAY_ONLY" and i["handoff"]["eligible"] is False and i["handoff"]["draft"] is None for i in rb["items"])
+    assert {i["symbol"] for i in rb["items"]} >= {"AMD", "MU"}
     for u in (f"{BASE}/runs/{'0' * 32}", f"{BASE}/runs/{'0' * 32}/candidates", f"{BASE}/runs/{'0' * 32}/targets", f"{BASE}/runs/{'0' * 32}/rebalance"):
         assert api.get(u).status_code == 404
 
@@ -288,15 +291,14 @@ def test_23_34_workspace_is_lazy_escaped_timer_free_and_display_only():
     assert HTML.index("alpaca_orders.js") < HTML.index("portfolio_rotation.js")
     assert "Load Robinhood Snapshot" in JS and "ROBINHOOD PORTFOLIO — READ ONLY" in JS                                   # 24 / 25
     assert "This proposal is based on your Robinhood holdings. No Robinhood orders will be sent." in JS
-    assert "ALPACA PAPER PORTFOLIO" in JS and "Stage 4.6B handoff will be added in Phase 5." in JS and "Paper handoff available after Phase 5" in JS
-    assert re.search(r'<button[^>]*disabled[^>]*>\$\{esc\(AL_HANDOFF\)\}</button>', CODE)                                 # 28 disabled, no action
-    assert not re.search(r"data-apo|AlpacaOrders|/api/alpaca-paper|alpaca-paper-orders|prefill|\.value\s*=\s*[a-z]+\.symbol|querySelector\('\[data-apo", CODE, re.I)   # 26-28 no prefill / DOM handoff
+    assert "ALPACA PAPER PORTFOLIO" in JS and "Prepare Paper Order" in JS                                                 # Phase 5: Alpaca only
+    assert not re.search(r"/api/alpaca-paper|alpaca-paper-orders|__apoPost|data-apo=\"preview\"|data-apo=\"confirm\"|AlpacaOrders\.show", CODE)   # never the 4.6B API or its buttons
     assert not re.search(r"setTimeout|setInterval|requestAnimationFrame|eval\(|new Function|location\.|document\.cookie", CODE)       # 34 no timers
-    assert "PROPOSAL ONLY — NO ORDERS ARE SENT" in JS and not re.search(r"\b(buy|sell|order now|place|execute)\b", CODE, re.I)
+    assert "PROPOSAL ONLY — NO ORDERS ARE SENT" in JS and not re.search(r"\b(buy now|sell now|order now|place|execute|recommend\w*)\b", CODE, re.I)
     assert "if (busy) return null;" in JS and 'if (!b || b.disabled || busy) return;' in JS                               # 33 busy guard
-    assert 'data-prt-act="run"${runReady() && !busy ? "" : " disabled"}' in JS and "snap().fresh" in JS                  # 32 stale disables Run
+    assert 'data-prt-act="run"${runReady() && !busy ? "" : " disabled"}' in JS and "fresh(snap())" in JS                 # 32 stale disables Run
     assert "const esc = (v) =>" in JS and JS.count("esc(") > 60 and 'innerHTML = `<div class="prt">' in JS                # 31 escaped rendering
-    assert "<th>Rank</th><th>Ticker</th><th>Composite</th><th>Current Wt</th><th>Target Wt</th><th>Action</th><th>Reason</th>" in JS   # 29
+    assert "<th>Rank</th><th>Ticker</th><th>Composite</th><th>Current Wt</th><th>Target Wt</th><th>Shares (Δ)</th><th>Action</th><th>Reason</th><th>Paper handoff</th>" in JS   # 29
     assert "FACTOR DETAIL" in JS and all(k in JS for k in ("Momentum", "Trend", "Relative Strength", "Volatility", "Drawdown", "Liquidity"))   # 30
     assert JS.count("fetch(") == 1 and "load();" in JS.split("function show()")[1]                                           # 35: show → 2 GETs only
     assert "RH_SHARES_HELD" in JS and "information only" in JS

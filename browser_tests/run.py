@@ -64,7 +64,9 @@ def run(argv=None) -> int:
         browser.launch()
         ctx = F.Ctx(browser, rep, f"http://127.0.0.1:{port}", out, ai, world, guard, broker)
         only = {x.strip() for x in args.only.split(",") if x.strip()}
-        flows = [f for f in F.FLOWS if not only or f.__name__ in only or f is F.dashboard]
+        # EXTRA_FLOWS run only when named with --only (they need their own fresh world, e.g. a linked paper account)
+        pool = list(F.FLOWS) + [f for f in getattr(F, "EXTRA_FLOWS", ()) if f.__name__ in only]
+        flows = [f for f in pool if not only or f.__name__ in only or f is F.dashboard]
         for flow in flows:
             rep.flow = flow.__name__
             f0 = time.perf_counter()
@@ -83,7 +85,9 @@ def run(argv=None) -> int:
         if args.inject_failure:
             rep.flow = "self_test"
             rep.check("self-test: an element that does not exist is present", browser.js("!!document.querySelector('#harness-self-test-missing')"))
-        rep.check("broker gateway: read-only GETs only", all(str(r).upper().startswith("GET") or "GET" in str(r).upper()[:8]
+        # the fake gateway client (tests/pf_fixtures.FakeGatewayHttp) records each request as a dict and can only GET
+        verb = lambda r: (str(r.get("method") or "GET") if isinstance(r, dict) else str(r)).upper()  # noqa: E731
+        rep.check("broker gateway: read-only GETs only", all(verb(r).startswith("GET") or "GET" in verb(r)[:8]
                                                             for r in getattr(broker, "requests", [])), getattr(broker, "requests", [])[:5])
         browser.drain()
         rep.absorb_page(browser.js_errors(), browser.console_errors(), browser.http_errors())

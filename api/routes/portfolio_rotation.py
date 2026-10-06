@@ -13,9 +13,11 @@ POST /api/portfolio-rotation/run                       {config_id, config_hash, 
                                                        <= 1 batched market-data request; persisted atomically
 GET  /api/portfolio-rotation/runs · /runs/{id} · /runs/{id}/candidates · /runs/{id}/targets · /runs/{id}/rebalance
 
-Every portfolio source is DISPLAY ONLY in Phase 4: there is no handoff, no prefill, no order, no broker write and no
-Stage 4.6B import here. Strict bodies (unknown fields → 422). Nothing secret is returned: account identifiers appear only
-masked or as the gateway alias.
+Handoff (Phase 5, rotation/handoff.py): only an ALPACA_PAPER_VIEW run's eligible items carry a browser prefill draft
+(symbol, side, whole shares) for the EXISTING frozen Stage 4.6B preview form; ROBINHOOD_READ_ONLY and LOCAL_SIMULATOR
+runs are DISPLAY ONLY. There is no order, no broker write, no alternate preview / confirm path and no Stage 4.6B service
+import here. Strict bodies (unknown fields → 422). Nothing secret is returned: account identifiers appear only masked or
+as the gateway alias.
 """
 from __future__ import annotations
 
@@ -30,6 +32,7 @@ from pydantic import BaseModel, ConfigDict, Field, StrictInt
 
 from fit import readonly as RO
 from rotation import engine as E
+from rotation import handoff as H
 from rotation import rules as R
 from rotation import snapshots as SN
 from rotation import store as S
@@ -38,8 +41,9 @@ from rotation import universe as U
 router = APIRouter(prefix="/api/portfolio-rotation", tags=["portfolio-rotation"])
 LABEL = "PORTFOLIO ROTATION — PROPOSAL ONLY — NO ORDERS ARE SENT"
 NOTE = ("A deterministic ranking of an explicit universe into an equal-weight target portfolio and a rebalance proposal. "
-        "Nothing here places, previews or prepares an order with any broker.")
-HANDOFF = "DISPLAY_ONLY"
+        "Nothing here places or previews an order; an Alpaca Paper run's eligible items can only prefill the existing "
+        "Alpaca Paper — Manual Orders form, where you still Preview and Confirm.")
+HANDOFF = H.MODE_DISPLAY
 SOURCE_LABELS = {SN.ROBINHOOD_READ_ONLY: "Robinhood Read Only", SN.ALPACA_PAPER_VIEW: "Alpaca Paper", SN.LOCAL_SIMULATOR: "Local Simulator"}
 FRESH_FOR_MIN = 30                                           # the display freshness; a run applies its config's max_snapshot_age_min
 _ID, _HASH = r"^[0-9a-f]{32}$", r"^[0-9a-f]{64}$"
@@ -128,7 +132,7 @@ def _snapshot_out(snapshot: SN.PortfolioSnapshot, now: datetime) -> dict:
             "status": snapshot.status, "age_min": age, "fresh": snapshot.status == SN.OK and age is not None and age <= FRESH_FOR_MIN,
             "fresh_for_min": FRESH_FOR_MIN, "cash": format(snapshot.cash, "f"), "n_positions": len(snapshot.positions),
             "positions": [{"symbol": s, "quantity": format(q, "f"), "flags": snapshot.flags(s)} for s, q in snapshot.positions],
-            "info": info, "handoff": HANDOFF}
+            "info": info, "handoff": H.mode_for_source(snapshot.source)}
 
 
 def _loaded(now: datetime) -> dict:
@@ -176,7 +180,9 @@ def _run_out(run: dict) -> dict:
             "universe_hash", "config_id", "config_hash", "input_hash", "proposal_hash", "reference_equity", "snapshot_cash",
             "current_cash_weight", "target_cash_weight", "turnover", "n_universe", "n_eligible", "n_selected", "market_data_requests",
             "run_at", "completed_at", "portfolio_snapshot_at", "snapshot_status", "source_mismatch_note")
-    return {**{k: run.get(k) for k in keys}, "handoff": HANDOFF}
+    src = run.get("portfolio_source")
+    return {**{k: run.get(k) for k in keys}, "handoff_mode": H.mode_for_source(src), "source_label": H.SOURCE_LABELS.get(src),
+            "handoff_explanation": H.EXPLANATIONS.get(src)}
 
 
 def _decode(row: dict, keys) -> dict:
@@ -192,8 +198,11 @@ def _decode(row: dict, keys) -> dict:
 @router.get("/config")
 def get_config() -> JSONResponse:
     now = _now()
-    return JSONResponse({"label": LABEL, "note": NOTE, "benchmark": "SPY", "max_symbols": U.MAX_SYMBOLS, "handoff": HANDOFF,
-                         "portfolio_sources": [{"id": s, "label": SOURCE_LABELS[s], "handoff": HANDOFF} for s in SN.SOURCES],
+    return JSONResponse({"label": LABEL, "note": NOTE, "benchmark": "SPY", "max_symbols": U.MAX_SYMBOLS,
+                         "handoff_modes": {s: H.mode_for_source(s) for s in SN.SOURCES},
+                         "portfolio_sources": [{"id": s, "label": SOURCE_LABELS[s], "source_label": H.SOURCE_LABELS[s],
+                                                "handoff": H.mode_for_source(s), "control_label": H.CONTROL_LABELS[s],
+                                                "explanation": H.EXPLANATIONS[s]} for s in SN.SOURCES],
                          "universe_sources": list(U.SOURCES), "defaults": {**S.CONFIG_DEFAULTS, "weights": R.DEFAULT_WEIGHTS},
                          "weight_keys": list(R.WEIGHT_KEYS), "actions": list(R.ACTIONS), "fresh_for_min": FRESH_FOR_MIN,
                          "snapshots": _loaded(now), **_selectors(RO.db_path())})
@@ -300,5 +309,8 @@ def get_rebalance(run_id: str) -> JSONResponse:
     st, run = _run_or_404(run_id)
     if run is None:
         return _err("NOT_FOUND", "No such rotation run.", 404)
-    return JSONResponse({"items": [{**i, "handoff": HANDOFF} for i in st.items(run_id)], "handoff": HANDOFF,
-                         "source_mismatch_note": run["source_mismatch_note"]})
+    src = run["portfolio_source"]
+    return JSONResponse({"items": [{**i, "handoff": H.evaluate(run, i)} for i in st.items(run_id)],
+                         "handoff_mode": H.mode_for_source(src), "source_label": H.SOURCE_LABELS.get(src),
+                         "control_label": H.CONTROL_LABELS.get(src), "explanation": H.EXPLANATIONS.get(src),
+                         "run_status": run["status"], "source_mismatch_note": run["source_mismatch_note"]})
