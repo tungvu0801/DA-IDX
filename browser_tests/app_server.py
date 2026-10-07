@@ -170,7 +170,7 @@ def prepare(tmp: Path, guard: Guard):
     pr.provider_factory = lambda: fake_provider(broker)
 
     NOW[0] = W.CLOCK
-    FC._utc = lambda now=None: (now or NOW[0]).astimezone(W.CLOCK.tzinfo)
+    FC._utc = lambda now: (now or NOW[0]).astimezone(W.CLOCK.tzinfo)      # same signature as the real fit.current._utc (one required argument)
     FC.BAR_CACHE = FC.BarCache()
     J._now = lambda now=None: (now or NOW[0]).astimezone(W.CLOCK.tzinfo)
     A._scheduler = A.Scheduler(clock=lambda: NOW[0], startup_delay_s=86400)    # background loop parked for the run

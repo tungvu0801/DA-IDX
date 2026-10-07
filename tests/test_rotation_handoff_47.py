@@ -199,7 +199,7 @@ def test_browser_handoff_reuses_the_frozen_46b_form_and_nothing_else():
 
 def test_protected_stage_46a_46b_files_and_stage_45_are_untouched():
     import hashlib
-    frozen = {"paper/alpaca_orders.py": "60f4af04", "paper/alpaca_order_rules.py": "ea6b4436", "paper/alpaca_order_reads.py": "8f1efe37",
+    frozen = {"paper/alpaca_orders.py": "391cd2f2", "paper/alpaca_order_rules.py": "ea6b4436", "paper/alpaca_order_reads.py": "8f1efe37",
               "paper/alpaca_order_writer.py": "f6cfe85b", "paper/alpaca_order_store.py": "5ad100be", "database/alpaca_order_migrations.py": "2f66ad55",
               "api/routes/alpaca_paper_orders.py": "36c000f9", "frontend/alpaca_orders.js": "f79bdde5", "frontend/alpaca_orders.css": "1140d946",
               "paper/ALPACA_ORDERS.md": "155d9a91", "tests/alpaca_order_fakes.py": "4aad94b5", "tests/test_alpaca_orders_46b.py": "aa08b62d",

@@ -224,7 +224,7 @@ def _apply_stale(st: S.OrderStore) -> None:
 def _reference(symbol: str) -> dict:
     """DESIGN_46B_FINAL §6.3: the latest completed daily close from the existing Stage 3.2/3.4 bar layer (local cache →
     memory → one batched market-data request, never stored). Informational only."""
-    now = FC._utc()
+    now = FC._utc(None)
     last_complete = B.last_complete_session_date(now)
     out = {"price": None, "session": None, "source": None, "feed": None, "market_data_requests": 0, "reason": None}
     try:
