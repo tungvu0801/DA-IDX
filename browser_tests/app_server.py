@@ -170,7 +170,7 @@ def prepare(tmp: Path, guard: Guard):
     pr.provider_factory = lambda: fake_provider(broker)
 
     NOW[0] = W.CLOCK
-    FC._utc = lambda now=None: (now or NOW[0]).astimezone(W.CLOCK.tzinfo)
+    FC._utc = lambda now: (now or NOW[0]).astimezone(W.CLOCK.tzinfo)      # same signature as the real fit.current._utc (one required argument)
     FC.BAR_CACHE = FC.BarCache()
     J._now = lambda now=None: (now or NOW[0]).astimezone(W.CLOCK.tzinfo)
     A._scheduler = A.Scheduler(clock=lambda: NOW[0], startup_delay_s=86400)    # background loop parked for the run
@@ -257,6 +257,9 @@ def prepare(tmp: Path, guard: Guard):
     APOR.WIRE = APOW.WIRE = lambda: ai.orders
     APO._sleep = lambda seconds: None                      # the automatic 2 s lookup delay is not waited for
     APO._now = lambda: _dt.now(_tz.utc) + _td(seconds=ai.orders_offset[0])   # real time + a test offset (30 s rule)
+    from api.routes import portfolio_rotation as PRT       # Stage 4.7: the harness clock; snapshots start empty (0 requests)
+    PRT.NOW_FN = lambda: NOW[0]
+    PRT._SNAPSHOTS.clear()
     return app, wd, ai, broker
 
 

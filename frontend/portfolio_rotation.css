@@ -1,0 +1,21 @@
+/* portfolio_rotation.css — Stage 4.7 Portfolio Rotation workspace (proposal only) */
+#tab-strategy.prt-mode #sl-body, #tab-strategy.prt-mode #bt-body, #tab-strategy.prt-mode #fj-body, #tab-strategy.prt-mode #sf-body,
+#tab-strategy.prt-mode #ev-body, #tab-strategy.prt-mode #scn-body, #tab-strategy.prt-mode #axh-body, #tab-strategy.prt-mode #dbf-body,
+#tab-strategy.prt-mode #ppf-body { display: none; }
+#tab-strategy:not(.prt-mode) #prt-body { display: none; }
+.prt { display: grid; gap: 10px; }
+.prt-banner { background: var(--cc-warn-bg, rgba(255, 180, 0, 0.12)); border: 1px solid var(--cc-warn, #e0a800); color: var(--cc-warn, #e0a800);
+  padding: 6px 10px; border-radius: 6px; font-weight: 600; letter-spacing: 0.02em; font-size: 12px; }
+.prt-notice { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--cc-border, #333); font-size: 12px; }
+.prt-notice.prt-rh { border-color: var(--cc-alert, #d9534f); }
+.prt-pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
+.prt-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0; }
+.prt-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 4px 12px; margin: 4px 0; }
+.prt-facts code, .prt code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; overflow-wrap: anywhere; }
+.prt-why { color: var(--cc-warn, #e0a800); }
+.prt-form { margin-top: 6px; }
+.prt-custom { grid-column: 1 / -1; }
+.prt-custom input { width: 100%; }
+.prt-ineligible td { opacity: 0.55; }
+.prt-detail { margin-top: 8px; border-top: 1px solid var(--cc-border, #333); padding-top: 6px; }
+.prt .cc-btn:disabled, .prt [data-prt-act]:disabled { opacity: 0.45; cursor: not-allowed; }

@@ -173,6 +173,7 @@ def test_stage_1_to_2_6_modules_do_not_import_portfolio():
                Path("api/routes/stock_decision.py"),  # Stage 2.7G.3 one-stock decision after Analyze (read-only)
                Path("api/routes/strategies.py"),      # Stage 3.1 "Use my holdings" shortcut (one read-only /positions)
                Path("ai_explain/service.py"),         # Stage 3.8 reuses the pure text guard portfolio.explain.check_text
+               Path("rotation/snapshots.py"),  # Stage 4.7 explicit read-only Robinhood snapshot: provider_factory, get_portfolio/get_positions only
                Path("api/server.py")}
     offenders = []
     for p in production_files():
