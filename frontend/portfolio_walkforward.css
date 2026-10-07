@@ -1,0 +1,15 @@
+/* portfolio_walkforward.css — Stage 4.9 Walk-Forward / Robustness workspace (research only) */
+#tab-strategy.pwf-mode #sl-body, #tab-strategy.pwf-mode #bt-body, #tab-strategy.pwf-mode #fj-body, #tab-strategy.pwf-mode #sf-body,
+#tab-strategy.pwf-mode #ev-body, #tab-strategy.pwf-mode #scn-body, #tab-strategy.pwf-mode #axh-body, #tab-strategy.pwf-mode #dbf-body,
+#tab-strategy.pwf-mode #ppf-body, #tab-strategy.pwf-mode #prt-body, #tab-strategy.pwf-mode #pbt-body { display: none; }
+#tab-strategy:not(.pwf-mode) #pwf-body { display: none; }
+#tab-strategy.prt-mode #pwf-body, #tab-strategy.pbt-mode #pwf-body { display: none; }
+.pwf { display: grid; gap: 10px; }
+.pwf-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px 12px; margin: 4px 0; }
+.pwf-grid label { display: grid; gap: 2px; }
+.pwf-wide { grid-column: 1 / -1; }
+.pwf-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0; }
+.pwf-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 4px 12px; margin: 4px 0; }
+.pwf-facts div { display: grid; gap: 1px; }
+.pwf-scroll { max-height: 420px; overflow: auto; }
+.pwf .cc-btn:disabled { opacity: 0.45; cursor: not-allowed; }
