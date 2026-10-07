@@ -42,6 +42,9 @@
   let cfg = null, configs = [], snapshots = {}, source = ROBINHOOD, configId = "", universe = "WATCHLIST", ref = "", custom = "";
   let run = null, candidates = [], targets = [], items = [], detail = "", busy = "", notice = "", requests = 0, seq = 0, showForm = false;
   let lastHandoff = null, observer = null;
+  let research = null, rdetail = "";                        // the research shortlist / notes of the current run (never advice)
+  const RBASE = "/api/research-workflow";
+  const RKIND = { NOT_REQUESTED: "dim", QUEUED: "info", CACHE_HIT: "ok", RUNNING: "info", COMPLETE: "ok", STALE: "warn", FAILED: "alert", SKIPPED: "dim" };
   let form = { name: "", momentum: "0.30", trend: "0.25", relative_strength: "0.25", volatility: "0.10", drawdown: "0", liquidity: "0.10", portfolio_size: "10",
     exit_rank: "15", cash_buffer_pct: "0.05", rebalance_threshold: "0.01", max_turnover_per_rotation: "0.50", max_position_weight: "0.20",
     min_position_weight: "0.05", min_price: "5.00", min_avg_dollar_volume: "5000000.00", excluded_symbols: "" };
@@ -86,7 +89,7 @@
     return pick ? pick.n_symbols : null;
   }
   const runReady = () => !!(fresh(snap()) && config() && (universe !== "CUSTOM" || customSymbols().length) && (!["SAVED_SCAN", "SAVED_UNIVERSE"].includes(universe) || ref));
-  const clearRun = () => { run = null; candidates = []; targets = []; items = []; detail = ""; };
+  const clearRun = () => { run = null; candidates = []; targets = []; items = []; detail = ""; research = null; rdetail = ""; };
 
   function readForm() {
     root.querySelectorAll("[data-prt-f]").forEach((el) => { form[el.dataset.prtF] = el.value; });
@@ -110,6 +113,10 @@
       act("run", `${BASE}/run`, body, (x) => { run = x.run; }).then((r) => { if (r && r.status === 200) loadRun(); });
     } else if (a === "detail") { detail = detail === b.dataset.sym ? "" : b.dataset.sym; draw(); }
     else if (a === "handoff") handoff(b.dataset.sym);
+    else if (a === "shortlist") { if (run) act("shortlist", `${RBASE}/shortlist`, { run_id: run.run_id }, (x) => { research = x; }); }
+    else if (a === "research") { if (run) act("research", `${RBASE}/research`, { run_id: run.run_id }, (x) => { research = x; }); }
+    else if (a === "research-refresh") { if (run) act("research", `${RBASE}/research`, { run_id: run.run_id, refresh: [b.dataset.sym] }, (x) => { research = x; }); }
+    else if (a === "rdetail") { rdetail = rdetail === b.dataset.sym ? "" : b.dataset.sym; draw(); }
     else if (a === "form") { showForm = !showForm; draw(); }
     else if (a === "save-config") {
       const w = (k) => form[k];
@@ -273,6 +280,40 @@
       ${lastHandoff ? `<div class="cc-small prt-last">${lastHandoff.placed ? `Draft placed in Alpaca Paper — Manual Orders: ${esc(lastHandoff.side)} ${esc(lastHandoff.quantity)} ${esc(lastHandoff.symbol)}. Review it there, then Preview and Confirm.` : `Preparing ${esc(lastHandoff.side)} ${esc(lastHandoff.quantity)} ${esc(lastHandoff.symbol)} — the Manual Orders form must be linked and turned on.`}</div>` : ""}
       ${detailCard()}</section>`;
   }
+  // ---- research shortlist: deterministic shortlist first, Claude only on the shortlist, cached, budgeted, never advice -------
+  function researchPanel() {
+    if (!run) return "";
+    const d = busy ? " disabled" : "";
+    const r = research;
+    const head = `<section class="cc-card prt-research"><div class="cc-head"><h2>RESEARCH SHORTLIST</h2><span class="cc-small cc-dimtext">deterministic shortlist first · Claude only on the shortlist · research notes, not advice</span></div>
+      <div class="prt-row"><button type="button" class="cc-btn cc-mini" data-prt-act="shortlist"${d}>${busy === "shortlist" ? "Building…" : "Build shortlist (0 AI calls)"}</button>
+      ${r ? `<button type="button" class="cc-btn cc-mini cc-primary" data-prt-act="research"${d}>${busy === "research" ? "Researching…" : `Research shortlist (≤ ${esc(r.budget ? r.budget.max_llm_calls_per_run : "?")} AI calls)`}</button>` : ""}</div>`;
+    if (!r) return `${head}<p class="cc-small cc-dimtext">Build the shortlist to see which symbols would be researched. Nothing is sent to Claude until you ask.</p></section>`;
+    const rep = r.report || (r.latest_batch && r.latest_batch.report);
+    const line = rep ? `<div class="cc-small prt-rsummary">${esc(rep.summary || "")} · AI calls in that batch: ${esc(rep.llm_calls)}</div>` : "";
+    const cacheWord = (s) => (s.cache === "HIT" ? "Hit" : s.cache === "FRESH" ? "Fresh" : s.cache === "STALE" ? "Stale" : "—");
+    const rows = (r.symbols || []).map((s) => `<tr data-prt-rsym="${esc(s.symbol)}" data-prt-rstate="${esc(s.state)}"><td class="ppf-sym"><button type="button" class="cc-btn cc-mini cc-link" data-prt-act="rdetail" data-sym="${esc(s.symbol)}">${esc(s.symbol)}</button></td>
+        <td>${esc(s.rank)}</td><td>${esc(s.score == null ? "—" : num(s.score, 2))}</td><td>${tag(s.state, RKIND[s.state] || "dim")}${s.reason ? ` <span class="cc-small cc-dimtext">${esc(s.reason)}</span>` : ""}</td>
+        <td class="cc-small">${esc(cacheWord(s))}${s.cache_age_min != null ? ` · ${esc(s.cache_age_min)}m` : ""}</td><td class="cc-small">${esc(s.updated ? whenNY(s.updated) : "—")}</td>
+        <td class="cc-small">${esc((s.reasons || []).join(", "))}</td>
+        <td>${s.result || s.state === "STALE" || s.state === "FAILED" ? `<button type="button" class="cc-btn cc-mini cc-link" data-prt-act="research-refresh" data-sym="${esc(s.symbol)}"${d}>Refresh</button>` : ""}</td></tr>`).join("");
+    const skipped = (r.skipped || []).map((s) => `${s.symbol} (${s.reason})`).join(", ");
+    return `${head}${line}<div class="sf-tablewrap"><table class="sf-table ppf-table"><thead><tr><th>Symbol</th><th>Rank</th><th>Score</th><th>Research</th><th>Cache</th><th>Updated</th><th>Why shortlisted</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+      ${skipped ? `<div class="cc-small cc-dimtext">Skipped: ${esc(skipped)}</div>` : ""}${rdetailCard()}</section>`;
+  }
+  function rdetailCard() {
+    const s = ((research && research.symbols) || []).find((x) => x.symbol === rdetail);
+    if (!s) return "";
+    const res = s.result;
+    if (!res) return `<div class="prt-detail"><h3>${esc(s.symbol)}</h3><div class="cc-small cc-dimtext">No research note (${esc(s.state)}${s.reason ? `: ${esc(s.reason)}` : ""}). Deterministic rank ${esc(s.rank)}, score ${esc(num(s.score, 2))} — unchanged by research.</div></div>`;
+    const list = (xs) => `<ul class="cc-small">${(xs || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`;
+    return `<div class="prt-detail" data-prt-rdetail="${esc(s.symbol)}"><div class="cc-head"><h3>${esc(s.symbol)} · RESEARCH NOTE</h3>${tag(`rank ${s.rank}`, "info")}</div>
+      <div class="cc-small"><b>Deterministic:</b> rank ${esc(s.rank)} · score ${esc(num(s.score, 2))}${s.rank_change != null ? ` · rank change ${esc(s.rank_change)}` : ""} · session ${esc(res.deterministic && res.deterministic.as_of)}</div>
+      <p class="cc-small">${esc(res.summary)}</p>
+      <div class="cc-small"><b>Catalysts</b>${list(res.catalysts)}<b>Risks</b>${list(res.risks)}</div>
+      <div class="cc-small"><b>Earnings context:</b> ${esc(res.earnings_context)}</div><div class="cc-small"><b>News context:</b> ${esc(res.news_context)}</div>
+      <div class="cc-small cc-dimtext"><b>Confidence note:</b> ${esc(res.confidence_note)} · ${esc(res.source_scope)} · generated ${esc(whenNY(res.generated_at))} · stale after ${esc(whenNY(res.stale_after))} · ${esc(res.model_metadata && res.model_metadata.model)}</div></div>`;
+  }
   function detailCard() {
     const c = candidates.find((x) => x.symbol === detail);
     if (!c) return "";
@@ -288,7 +329,7 @@
     root.innerHTML = `<div class="prt">
       <div class="prt-banner" role="note">${esc(BANNER)}</div>
       ${sourceNotice()}${notice ? `<div class="cc-banner cc-warn cc-small">${esc(notice)}</div>` : ""}
-      ${sourceCard()}${controls()}${summary()}${table()}
+      ${sourceCard()}${controls()}${summary()}${table()}${researchPanel()}
       <p class="cc-small cc-dimtext ppf-foot">${esc(cfg ? cfg.note : "")}</p></div>`;
   }
   function show() {
@@ -301,5 +342,6 @@
   window.PortfolioRotation = { get state() {
     return { source, configId, universe, ref, busy, notice, requests, snapshot: snap() ? { fresh: fresh(snap()), n: snap().n_positions } : null,
       run: run ? { id: run.run_id, status: run.status, source: run.portfolio_source, handoff_mode: run.handoff_mode } : null, rows: candidates.length, items: items.length,
-      eligible: items.filter((i) => eligibleDraft(i.symbol)).map((i) => i.symbol), detail, ready: runReady(), lastHandoff }; } };
+      eligible: items.filter((i) => eligibleDraft(i.symbol)).map((i) => i.symbol), detail, ready: runReady(), lastHandoff,
+      research: research ? { symbols: (research.symbols || []).map((s) => [s.symbol, s.state]), calls: research.claude_calls } : null, rdetail }; } };
 })();
