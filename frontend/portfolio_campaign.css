@@ -1,0 +1,15 @@
+/* portfolio_campaign.css — Stage 5.0 Model Evaluation Campaign workspace (research only) */
+#tab-strategy.pmc-mode #sl-body, #tab-strategy.pmc-mode #bt-body, #tab-strategy.pmc-mode #fj-body, #tab-strategy.pmc-mode #sf-body,
+#tab-strategy.pmc-mode #ev-body, #tab-strategy.pmc-mode #scn-body, #tab-strategy.pmc-mode #axh-body, #tab-strategy.pmc-mode #dbf-body,
+#tab-strategy.pmc-mode #ppf-body, #tab-strategy.pmc-mode #prt-body, #tab-strategy.pmc-mode #pbt-body, #tab-strategy.pmc-mode #pwf-body { display: none; }
+#tab-strategy:not(.pmc-mode) #pmc-body { display: none; }
+#tab-strategy.prt-mode #pmc-body, #tab-strategy.pbt-mode #pmc-body, #tab-strategy.pwf-mode #pmc-body { display: none; }
+.pmc { display: grid; gap: 10px; }
+.pmc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px 12px; margin: 4px 0; }
+.pmc-grid label { display: grid; gap: 2px; }
+.pmc-wide { grid-column: 1 / -1; }
+.pmc-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0; }
+.pmc-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 4px 12px; margin: 4px 0; }
+.pmc-facts div { display: grid; gap: 1px; }
+.pmc-scroll { max-height: 460px; overflow: auto; }
+.pmc .cc-btn:disabled { opacity: 0.45; cursor: not-allowed; }

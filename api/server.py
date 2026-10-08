@@ -28,6 +28,7 @@ from api.routes import portfolio_rotation
 from api.routes import research_workflow
 from api.routes import portfolio_backtest
 from api.routes import portfolio_walkforward
+from api.routes import model_campaign
 from database.database import get_db
 from models.schemas import HealthResponse
 
@@ -121,6 +122,7 @@ app.include_router(portfolio_rotation.router)  # Stage 4.7: deterministic portfo
 app.include_router(research_workflow.router)  # research workflow: shortlist-before-LLM, cached, budgeted; research only, no order path
 app.include_router(portfolio_backtest.router)  # Stage 4.8: historical rotation backtest — research only, nothing is traded
 app.include_router(portfolio_walkforward.router)  # Stage 4.9: walk-forward robustness — research only, nothing is traded or deployed
+app.include_router(model_campaign.router)  # Stage 5.0: model evaluation campaign / leaderboard — research only, nothing is traded or activated
 
 
 @app.get("/api/health", response_model=HealthResponse)
