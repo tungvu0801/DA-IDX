@@ -1,0 +1,15 @@
+/* portfolio_diagnostics.css — Stage 5.1 Attribution & Benchmark Diagnostics workspace (research only) */
+#tab-strategy.pdx-mode #sl-body, #tab-strategy.pdx-mode #bt-body, #tab-strategy.pdx-mode #fj-body, #tab-strategy.pdx-mode #sf-body,
+#tab-strategy.pdx-mode #ev-body, #tab-strategy.pdx-mode #scn-body, #tab-strategy.pdx-mode #axh-body, #tab-strategy.pdx-mode #dbf-body,
+#tab-strategy.pdx-mode #ppf-body, #tab-strategy.pdx-mode #prt-body, #tab-strategy.pdx-mode #pbt-body, #tab-strategy.pdx-mode #pwf-body,
+#tab-strategy.pdx-mode #pmc-body { display: none; }
+#tab-strategy:not(.pdx-mode) #pdx-body { display: none; }
+#tab-strategy.prt-mode #pdx-body, #tab-strategy.pbt-mode #pdx-body, #tab-strategy.pwf-mode #pdx-body, #tab-strategy.pmc-mode #pdx-body { display: none; }
+.pdx { display: grid; gap: 10px; }
+.pdx-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0; }
+.pdx-row label { display: grid; gap: 2px; }
+.pdx-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 4px 12px; margin: 4px 0; }
+.pdx-facts div { display: grid; gap: 1px; }
+.pdx-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 10px; }
+.pdx-scroll { max-height: 420px; overflow: auto; }
+.pdx .cc-btn:disabled { opacity: 0.45; cursor: not-allowed; }
