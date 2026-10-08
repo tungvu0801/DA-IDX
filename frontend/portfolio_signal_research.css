@@ -1,0 +1,14 @@
+/* portfolio_signal_research.css — Stage 5.2 Signal Research workspace (research only) */
+#tab-strategy.psr-mode #sl-body, #tab-strategy.psr-mode #bt-body, #tab-strategy.psr-mode #fj-body, #tab-strategy.psr-mode #sf-body,
+#tab-strategy.psr-mode #ev-body, #tab-strategy.psr-mode #scn-body, #tab-strategy.psr-mode #axh-body, #tab-strategy.psr-mode #dbf-body,
+#tab-strategy.psr-mode #ppf-body, #tab-strategy.psr-mode #prt-body, #tab-strategy.psr-mode #pbt-body, #tab-strategy.psr-mode #pwf-body,
+#tab-strategy.psr-mode #pmc-body, #tab-strategy.psr-mode #pdx-body { display: none; }
+#tab-strategy:not(.psr-mode) #psr-body { display: none; }
+#tab-strategy.prt-mode #psr-body, #tab-strategy.pbt-mode #psr-body, #tab-strategy.pwf-mode #psr-body, #tab-strategy.pmc-mode #psr-body, #tab-strategy.pdx-mode #psr-body { display: none; }
+.psr { display: grid; gap: 10px; }
+.psr-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0; }
+.psr-row label { display: grid; gap: 2px; }
+.psr-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 4px 12px; margin: 4px 0; }
+.psr-facts div { display: grid; gap: 1px; }
+.psr-scroll { max-height: 460px; overflow: auto; }
+.psr .cc-btn:disabled { opacity: 0.45; cursor: not-allowed; }

@@ -30,6 +30,7 @@ from api.routes import portfolio_backtest
 from api.routes import portfolio_walkforward
 from api.routes import model_campaign
 from api.routes import rotation_diagnostics
+from api.routes import signal_research
 from database.database import get_db
 from models.schemas import HealthResponse
 
@@ -125,6 +126,7 @@ app.include_router(portfolio_backtest.router)  # Stage 4.8: historical rotation 
 app.include_router(portfolio_walkforward.router)  # Stage 4.9: walk-forward robustness — research only, nothing is traded or deployed
 app.include_router(model_campaign.router)  # Stage 5.0: model evaluation campaign / leaderboard — research only, nothing is traded or activated
 app.include_router(rotation_diagnostics.router)  # Stage 5.1: attribution & benchmark diagnostics — research only
+app.include_router(signal_research.router)  # Stage 5.2: deterministic signal research — research only, nothing is traded or activated
 
 
 @app.get("/api/health", response_model=HealthResponse)

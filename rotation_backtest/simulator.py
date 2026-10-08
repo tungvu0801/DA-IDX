@@ -129,15 +129,16 @@ def check_benchmark(series: Dict[str, BarSeries], universe_symbols, start: date,
 
 # ---- the replay ----------------------------------------------------------------------------------------------------------------------
 
-def simulate(rotation_cfg: dict, universe: U.ResolvedUniverse, series: Dict[str, BarSeries], definition: dict, *, now: datetime) -> SimulationResult:
-    """Replay `definition` (the canonical BacktestConfig) with the Stage 4.7 engine. Returns a COMPLETED or FAILED result."""
+def simulate(rotation_cfg: dict, universe: U.ResolvedUniverse, series: Dict[str, BarSeries], definition: dict, *, now: datetime, engine=None) -> SimulationResult:
+    """Replay `definition` (the canonical BacktestConfig) with the Stage 4.7 engine. Returns a COMPLETED or FAILED result.
+    `engine` (research only, Stage 5.2): an alternative proposal function with the engine's signature; None = the production engine."""
     try:
-        return _simulate(rotation_cfg, universe, series, definition, now)
+        return _simulate(rotation_cfg, universe, series, definition, now, engine)
     except SimulationFailure as exc:
         return SimulationResult(status="FAILED", failure_code=exc.code, failure_detail=exc.detail[:300])
 
 
-def _simulate(cfg: dict, universe: U.ResolvedUniverse, series: Dict[str, BarSeries], defn: dict, now: datetime) -> SimulationResult:
+def _simulate(cfg: dict, universe: U.ResolvedUniverse, series: Dict[str, BarSeries], defn: dict, now: datetime, engine=None) -> SimulationResult:
     start, end = date.fromisoformat(defn["start_date"]), date.fromisoformat(defn["end_date"])
     cost_rate = Decimal(defn["transaction_cost_bps"]) / BPS
     slip = Decimal(defn["slippage_bps"]) / BPS
@@ -229,7 +230,8 @@ def _simulate(cfg: dict, universe: U.ResolvedUniverse, series: Dict[str, BarSeri
             seq += 1
             snapshot = SN.normalise(SN.LOCAL_SIMULATOR, None, _q(cash, MONEY), [(sym, q) for sym, q in holdings.items()],
                                     {"historical_backtest": True}, SN.OK)
-            rr = E.compute_rotation(cfg, universe, truncate_all(series, s), snapshot, s, now=now, conflicts=set())
+            bars_to_s = truncate_all(series, s)
+            rr = E.compute_rotation(cfg, universe, bars_to_s, snapshot, s, now=now, conflicts=set()) if engine is None else engine(cfg, universe, bars_to_s, snapshot, s, now=now, conflicts=set())
             run = rr.run
             row = {"seq": seq, "signal_session": s.isoformat(), "execution_session": None, "engine_status": run["status"],
                    "status_detail": run.get("status_detail"), "executed": 0, "skip_reason": None, "reference_equity": run.get("reference_equity"),
