@@ -26,6 +26,8 @@ from api.routes import (agent, ai_explain, alerts, alpaca_paper, alpaca_paper_or
                         strategies, strategy_fit, strategy_scanner, trade_review, watchlist)
 from api.routes import portfolio_rotation
 from api.routes import research_workflow
+from api.routes import portfolio_backtest
+from api.routes import portfolio_walkforward
 from database.database import get_db
 from models.schemas import HealthResponse
 
@@ -117,6 +119,8 @@ app.include_router(alpaca_paper.router)  # Stage 4.6A: Alpaca PAPER account, REA
 app.include_router(alpaca_paper_orders.router)  # Stage 4.6B: manual PAPER orders — preview, then explicit click Confirm only
 app.include_router(portfolio_rotation.router)  # Stage 4.7: deterministic portfolio rotation PROPOSALS (display only; no order path)
 app.include_router(research_workflow.router)  # research workflow: shortlist-before-LLM, cached, budgeted; research only, no order path
+app.include_router(portfolio_backtest.router)  # Stage 4.8: historical rotation backtest — research only, nothing is traded
+app.include_router(portfolio_walkforward.router)  # Stage 4.9: walk-forward robustness — research only, nothing is traded or deployed
 
 
 @app.get("/api/health", response_model=HealthResponse)
